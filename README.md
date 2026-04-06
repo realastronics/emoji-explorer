@@ -1,13 +1,10 @@
-# Emoji Explorer
+## Emoji Explorer
+Location-based AR game designed as an event under the techfest of ACM BMU | GLITCH 2.0, concept inspired from Pokemon-Go. 
 
-A Location-based AR game designed for short and competitive sessions, mechanism partially inspired from Pokemon-Go. 
-
-## Concept
-
+### Concept
 Players move around a real-world area to discover and capture virtual objects anchored to GPS locations using augmented reality.
 
-## Gameplay Loop
-
+### Gameplay Loop
 1. Check map for nearby targets  
 2. Move to target zone  
 3. Enter proximity  
@@ -15,23 +12,20 @@ Players move around a real-world area to discover and capture virtual objects an
 5. Capture object (tap and hold)  
 6. Gain points and continue  
 
-## Features
-
-- Location-based object spawning  
+### Features
+- Location based object spawning  
 - AR-based interaction  
 - Team-based scoring  
 - Power-ups and sabotage mechanics  
 - Leaderboard sync  
 
-## Tech Stack
-
-- Android  
+### Tech Stack
+- Android Studio
 - Kotlin  
 - ARCore / Unity (TBD)  
 - Firebase (leaderboard and sync)  
 
-## Status
-
+### Status
 MVP in development
 
 Planned:
@@ -42,8 +36,6 @@ Planned:
 - Leaderboard  
 - Power-ups  
 
-## Environment
-
+### Environment
 - BML Munjal University campus  
-- Session duration: ~30 minutes  
-- Optimized for mid-range Android devices  
+- Session duration: ~30-45 minutes  
