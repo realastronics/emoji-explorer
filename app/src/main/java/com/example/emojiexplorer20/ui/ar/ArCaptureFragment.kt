@@ -49,10 +49,11 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
     var onCaptureSuccess: ((EmojiObject) -> Unit)? = null
 
     companion object {
-        fun newInstance(objectId: String): ArCaptureFragment {
+        fun newInstance(objectId: String, teamId: String): ArCaptureFragment {
             val fragment = ArCaptureFragment()
             val args = Bundle()
             args.putString("object_id", objectId)
+            args.putString("team_id", teamId)
             fragment.arguments = args
             return fragment
         }
