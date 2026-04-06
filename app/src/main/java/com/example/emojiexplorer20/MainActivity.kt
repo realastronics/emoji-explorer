@@ -7,11 +7,14 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.emojiexplorer20.data.repository.FirebaseRepository
+import com.example.emojiexplorer20.ui.map.MapFragment
 import com.google.ar.core.ArCoreApk
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    // All permissions the app needs
     private val requiredPermissions = arrayOf(
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION
@@ -29,7 +32,6 @@ class MainActivity : AppCompatActivity() {
                 "Camera and Location are required to play Explorer",
                 Toast.LENGTH_LONG
             ).show()
-            // Ask again after short delay — player must grant to continue
             requestPermissionsIfNeeded()
         }
     }
@@ -53,19 +55,47 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkArCoreAndProceed() {
         val availability = ArCoreApk.getInstance().checkAvailability(this)
-        when {
-            availability.isSupported -> {
-                // Device supports AR — proceed to game
-                Toast.makeText(this, "AR Ready. Explorer loading...", Toast.LENGTH_SHORT).show()
-                // TODO: Next step — launch MapFragment here
+        if (availability.isSupported) {
+            showTeamNameDialog()
+        } else {
+            Toast.makeText(
+                this,
+                "ARCore not supported on this device",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun showTeamNameDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "Enter your team name"
+            setPadding(40, 20, 40, 20)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Welcome to Emoji Explorer!")
+            .setMessage("What is your team name?")
+            .setView(input)
+            .setCancelable(false)
+            .setPositiveButton("Let's Go!") { _, _ ->
+                val name = input.text.toString().trim()
+                    .ifEmpty { "Team ${(100..999).random()}" }
+                registerAndLaunch(name)
             }
-            else -> {
-                Toast.makeText(
-                    this,
-                    "This device does not support ARCore",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+            .show()
+    }
+
+    private fun registerAndLaunch(teamName: String) {
+        val repo = FirebaseRepository()
+        lifecycleScope.launch {
+            val result = repo.registerTeam(teamName)
+            val team = result.getOrNull()
+            val teamId = team?.id ?: ""
+            supportFragmentManager.beginTransaction()
+                .replace(
+                    R.id.fragment_container,
+                    MapFragment.newInstance(teamName, teamId)
+                )
+                .commit()
         }
     }
 }

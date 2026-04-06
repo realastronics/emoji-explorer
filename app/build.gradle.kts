@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -42,7 +43,6 @@ dependencies {
 
     // ARCore + SceneView (handles AR rendering)
     implementation(libs.arcore)
-    implementation(libs.arsceneview)
 
     // Map (works offline, no API key needed)
     implementation(libs.osmdroid)
@@ -51,11 +51,12 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.database)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Lifecycle + Coroutines
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.coroutines.android)
 
     implementation("androidx.fragment:fragment-ktx:1.6.2")
-
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 }

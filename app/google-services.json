@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1044662275361",
+    "project_id": "emoji-explorer-12ab4",
+    "storage_bucket": "emoji-explorer-12ab4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1044662275361:android:765d1d97b450a475db0260",
+        "android_client_info": {
+          "package_name": "com.example.emojiexplorer20"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvC7ljl5jnpYU4m43KjkclWb1tLedkLb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
