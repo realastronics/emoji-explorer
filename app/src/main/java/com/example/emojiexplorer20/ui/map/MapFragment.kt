@@ -189,18 +189,35 @@ class MapFragment : Fragment() {
     }
 
     private fun setupMap() {
+        // Dark tile source for F1 feel
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
         mapView.controller.setZoom(18.0)
-        // Correct BML Munjal coordinates
         val bmlCenter = GeoPoint(28.2468, 76.8128)
         mapView.controller.setCenter(bmlCenter)
+
+        // Dark overlay — tints the map dark with red border feel
+        mapView.overlayManager.tilesOverlay.apply {
+            setColorFilter(getF1ColorFilter())
+        }
+
         myLocationOverlay = MyLocationNewOverlay(
             GpsMyLocationProvider(requireContext()), mapView
         )
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
         mapView.overlays.add(myLocationOverlay)
+    }
+
+    private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
+        // Invert colors + red tint = dark map with red roads
+        val matrix = android.graphics.ColorMatrix(floatArrayOf(
+            -0.6f,  0f,    0f,    0f,  180f,   // Red channel — boost
+            0f,   -0.5f,  0f,    0f,  120f,   // Green channel — suppress
+            0f,    0f,   -0.5f,  0f,  120f,   // Blue channel — suppress
+            0f,    0f,    0f,    1f,    0f    // Alpha unchanged
+        ))
+        return android.graphics.ColorMatrixColorFilter(matrix)
     }
 
     private fun setupSpawnMarkers() {
