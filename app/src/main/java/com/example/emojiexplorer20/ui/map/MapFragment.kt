@@ -139,6 +139,11 @@ class MapFragment : Fragment() {
     private fun startScoreSync() {
         syncHandler.post(object : Runnable {
             override fun run() {
+                // Always refresh display
+                activity?.runOnUiThread {
+                    tvScore?.text = "$currentScore pts"
+                }
+                // Only push to Firebase if changed
                 if (currentScore != lastSyncedScore && teamId.isNotEmpty()) {
                     lastSyncedScore = currentScore
                     lifecycleScope.launch {
@@ -328,7 +333,9 @@ class MapFragment : Fragment() {
 
     fun addPoints(points: Int) {
         currentScore += points
-        tvScore?.text = "$currentScore pts"
+        activity?.runOnUiThread {
+            tvScore?.text = "$currentScore pts"
+        }
     }
 
     override fun onResume() {
