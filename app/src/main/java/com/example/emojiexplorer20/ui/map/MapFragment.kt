@@ -35,6 +35,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import androidx.core.content.ContextCompat
 
 class MapFragment : Fragment() {
 
@@ -198,17 +199,26 @@ class MapFragment : Fragment() {
 
     private fun setupSpawnMarkers() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
+            if (obj.isCaptured) return@forEach
             val marker = Marker(mapView)
             marker.position = GeoPoint(obj.lat, obj.lng)
-            marker.title = "${obj.emoji} ${obj.rarity.label} — ${obj.rarity.points}pts"
-            marker.snippet = "Get closer to capture"
-            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            marker.title = "${obj.emoji} ${obj.rarity.label}"
+            marker.snippet = "${obj.rarity.points} pts — get within 15m to capture"
+            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+
+            // Color-coded icon by rarity
+            val drawableRes = when (obj.rarity) {
+                EmojiObject.Rarity.COMMON   -> R.drawable.marker_common
+                EmojiObject.Rarity.UNCOMMON -> R.drawable.marker_uncommon
+                EmojiObject.Rarity.RARE     -> R.drawable.marker_rare
+                EmojiObject.Rarity.ULTRA    -> R.drawable.marker_ultra
+            }
+            marker.icon = ContextCompat.getDrawable(requireContext(), drawableRes)
             mapView.overlays.add(marker)
             spawnMarkers.add(marker)
         }
         mapView.invalidate()
     }
-
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         val locationRequest = LocationRequest.Builder(
