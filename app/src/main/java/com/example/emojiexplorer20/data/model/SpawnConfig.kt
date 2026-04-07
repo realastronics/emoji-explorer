@@ -2,30 +2,40 @@ package com.example.emojiexplorer20.data.model
 
 object SpawnConfig {
 
-    // ⚠️ IMPORTANT: Walk your actual BML campus before the event
-    // Open Google Maps, stand at each spot, long-press to get exact coordinates
-    // Replace these placeholder coordinates with your real survey points
     val SPAWN_POINTS = listOf(
-        EmojiObject("sp_01", 28.9124, 76.5832, "🔥", EmojiObject.Rarity.COMMON),
-        EmojiObject("sp_02", 28.9131, 76.5840, "⭐", EmojiObject.Rarity.UNCOMMON),
-        EmojiObject("sp_03", 28.9118, 76.5825, "💎", EmojiObject.Rarity.RARE),
-        EmojiObject("sp_04", 28.9140, 76.5850, "👑", EmojiObject.Rarity.ULTRA),
-        EmojiObject("sp_05", 28.9128, 76.5860, "🔥", EmojiObject.Rarity.COMMON),
-        EmojiObject("sp_06", 28.9135, 76.5820, "⭐", EmojiObject.Rarity.UNCOMMON),
-        EmojiObject("sp_07", 28.9115, 76.5845, "💎", EmojiObject.Rarity.RARE),
-        EmojiObject("sp_08", 28.9145, 76.5835, "🔥", EmojiObject.Rarity.COMMON),
-        EmojiObject("sp_09", 28.9122, 76.5855, "⭐", EmojiObject.Rarity.UNCOMMON),
-        EmojiObject("sp_10", 28.9138, 76.5828, "👑", EmojiObject.Rarity.ULTRA),
+        // Main Building entrance
+        EmojiObject("sp_01", 28.58234, 76.63891, "🔥", EmojiObject.Rarity.COMMON),
+        // Library
+        EmojiObject("sp_02", 28.58198, 76.63942, "⭐", EmojiObject.Rarity.UNCOMMON),
+        // Cafeteria
+        EmojiObject("sp_03", 28.58267, 76.63978, "💎", EmojiObject.Rarity.RARE),
+        // Sports Ground
+        EmojiObject("sp_04", 28.58312, 76.63856, "👑", EmojiObject.Rarity.ULTRA),
+        // North Block
+        EmojiObject("sp_05", 28.58178, 76.63820, "🔥", EmojiObject.Rarity.COMMON),
+        // Parking Area
+        EmojiObject("sp_06", 28.58345, 76.63910, "⭐", EmojiObject.Rarity.UNCOMMON),
+        // Admin Block
+        EmojiObject("sp_07", 28.58156, 76.63865, "💎", EmojiObject.Rarity.RARE),
+        // Workshop Area
+        EmojiObject("sp_08", 28.58289, 76.64012, "🔥", EmojiObject.Rarity.COMMON),
+        // Auditorium
+        EmojiObject("sp_09", 28.58223, 76.64045, "👑", EmojiObject.Rarity.ULTRA),
+        // Girls Hostel Road
+        EmojiObject("sp_10", 28.58134, 76.63798, "⭐", EmojiObject.Rarity.UNCOMMON),
+        // Boys Hostel
+        EmojiObject("sp_11", 28.58367, 76.63845, "🔥", EmojiObject.Rarity.COMMON),
+        // Football Ground
+        EmojiObject("sp_12", 28.58401, 76.63923, "💎", EmojiObject.Rarity.RARE),
     )
 
-    // Tuning constants — adjust after on-site testing
-    const val PROXIMITY_RADIUS_M        = 10.0   // ring appears on map
-    const val AR_TRIGGER_RADIUS_M       = 7.0    // AR prompt appears
-    const val CAPTURE_HOLD_MS           = 1800L  // normal tap-hold duration
-    const val CAPTURE_HOLD_SLOW_MS      = 3600L  // hold duration when SLOW_CAPTURE debuff active
-    const val SHRINK_ZONE_RADIUS_M      = 3.0    // radius when SHRINK_ZONE debuff active
-    const val GPS_ACCURACY_GATE_M       = 15f    // ignore readings noisier than this
-    const val GPS_JUMP_THRESHOLD_M      = 50.0   // anti-cheat: max jump in 2 seconds
-    const val LEADERBOARD_SYNC_MS       = 4000L  // how often to push score to Firebase
-    const val GPS_SMOOTH_WINDOW         = 3      // number of readings to average
+    const val PROXIMITY_RADIUS_M        = 15.0
+    const val AR_TRIGGER_RADIUS_M       = 10.0
+    const val CAPTURE_HOLD_MS           = 1800L
+    const val CAPTURE_HOLD_SLOW_MS      = 3600L
+    const val SHRINK_ZONE_RADIUS_M      = 3.0
+    const val GPS_ACCURACY_GATE_M       = 15f
+    const val GPS_JUMP_THRESHOLD_M      = 50.0
+    const val LEADERBOARD_SYNC_MS       = 4000L
+    const val GPS_SMOOTH_WINDOW         = 3
 }

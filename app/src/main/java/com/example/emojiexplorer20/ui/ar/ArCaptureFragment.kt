@@ -1,13 +1,20 @@
 package com.example.emojiexplorer20.ui.ar
 
 import android.animation.ValueAnimator
-import android.opengl.GLES20
-import android.opengl.GLSurfaceView
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.SurfaceTexture
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.Surface
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -19,17 +26,12 @@ import androidx.fragment.app.Fragment
 import com.example.emojiexplorer20.R
 import com.example.emojiexplorer20.data.model.EmojiObject
 import com.example.emojiexplorer20.data.model.SpawnConfig
-import com.google.ar.core.ArCoreApk
-import com.google.ar.core.Config
-import com.google.ar.core.Session
-import com.google.ar.core.TrackingState
-import com.google.ar.core.exceptions.CameraNotAvailableException
-import javax.microedition.khronos.egl.EGLConfig
-import javax.microedition.khronos.opengles.GL10
 
-class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
+class ArCaptureFragment : Fragment() {
 
-    private lateinit var surfaceView: GLSurfaceView
+    // UI
+    private lateinit var textureView: TextureView
+    private lateinit var tvEmojiOverlay: TextView
     private lateinit var btnCapture: Button
     private lateinit var tvArHint: TextView
     private lateinit var tvCaptureStatus: TextView
@@ -39,12 +41,16 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
     private lateinit var captureSuccessOverlay: LinearLayout
     private lateinit var reticleFill: View
 
-    private var arSession: Session? = null
+    // Camera
+    private var cameraDevice: CameraDevice? = null
+    private var captureSession: CameraCaptureSession? = null
+    private val cameraHandler = Handler(Looper.getMainLooper())
+
+    // Game state
     private var targetObject: EmojiObject? = null
     private var isCapturing = false
     private var captureAnimator: ValueAnimator? = null
     private val handler = Handler(Looper.getMainLooper())
-    private var isArResumed = false
 
     var onCaptureSuccess: ((EmojiObject) -> Unit)? = null
 
@@ -60,7 +66,8 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_ar, container, false)
@@ -69,11 +76,9 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Find target object
-        val objectId = arguments?.getString("object_id")
-        targetObject = SpawnConfig.SPAWN_POINTS.find { it.id == objectId }
-
         // Bind views
+        textureView = view.findViewById(R.id.arSceneView)
+        tvEmojiOverlay = view.findViewById(R.id.tv_emoji_overlay)
         btnCapture = view.findViewById(R.id.btn_capture)
         tvArHint = view.findViewById(R.id.tv_ar_hint)
         tvCaptureStatus = view.findViewById(R.id.tv_capture_status)
@@ -83,18 +88,31 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
         captureSuccessOverlay = view.findViewById(R.id.capture_success_overlay)
         reticleFill = view.findViewById(R.id.reticle_fill)
 
-        // Replace ArSceneView in layout with a plain GLSurfaceView for raw ARCore
-        surfaceView = view.findViewById(R.id.arSceneView) as? GLSurfaceView
-            ?: createFallbackSurfaceView(view)
-
+        // Load target object
+        val objectId = arguments?.getString("object_id")
+        targetObject = SpawnConfig.SPAWN_POINTS.find { it.id == objectId }
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
             tvSuccessEmoji.text = obj.emoji
             tvSuccessPoints.text = "+${obj.rarity.points} pts!"
-            tvArHint.text = "Find the ${obj.emoji} and hold CAPTURE!"
+            tvEmojiOverlay.text = obj.emoji
+            tvArHint.text = "Find the ${obj.emoji} — hold CAPTURE!"
         }
 
-        setupArSession()
+        // Start camera when texture is ready
+        textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(
+                surface: SurfaceTexture, width: Int, height: Int
+            ) {
+                openCamera()
+            }
+            override fun onSurfaceTextureSizeChanged(
+                surface: SurfaceTexture, width: Int, height: Int
+            ) {}
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture) = true
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+        }
+
         setupCaptureButton()
 
         view.findViewById<Button>(R.id.btn_back).setOnClickListener {
@@ -102,96 +120,70 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
         }
     }
 
-    private fun createFallbackSurfaceView(root: View): GLSurfaceView {
-        val container = root as ViewGroup
-        val sv = GLSurfaceView(requireContext())
-        sv.id = R.id.arSceneView
-        sv.layoutParams = ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
+    @SuppressLint("MissingPermission")
+    private fun openCamera() {
+        val manager = requireContext()
+            .getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+        // Find back-facing camera
+        val cameraId = manager.cameraIdList.firstOrNull { id ->
+            manager.getCameraCharacteristics(id)
+                .get(CameraCharacteristics.LENS_FACING) ==
+                    CameraCharacteristics.LENS_FACING_BACK
+        } ?: return
+
+        manager.openCamera(cameraId, object : CameraDevice.StateCallback() {
+            override fun onOpened(camera: CameraDevice) {
+                cameraDevice = camera
+                startCameraPreview(camera)
+            }
+            override fun onDisconnected(camera: CameraDevice) {
+                camera.close()
+                cameraDevice = null
+            }
+            override fun onError(camera: CameraDevice, error: Int) {
+                camera.close()
+                cameraDevice = null
+                handler.post {
+                    if (isAdded) Toast.makeText(
+                        requireContext(),
+                        "Camera error $error",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }, cameraHandler)
+    }
+
+    private fun startCameraPreview(camera: CameraDevice) {
+        val surfaceTexture = textureView.surfaceTexture ?: return
+        surfaceTexture.setDefaultBufferSize(1280, 720)
+        val surface = Surface(surfaceTexture)
+
+        val previewRequest = camera
+            .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            .apply { addTarget(surface) }
+            .build()
+
+        camera.createCaptureSession(
+            listOf(surface),
+            object : CameraCaptureSession.StateCallback() {
+                override fun onConfigured(session: CameraCaptureSession) {
+                    captureSession = session
+                    session.setRepeatingRequest(previewRequest, null, cameraHandler)
+                }
+                override fun onConfigureFailed(session: CameraCaptureSession) {
+                    handler.post {
+                        if (isAdded) Toast.makeText(
+                            requireContext(),
+                            "Camera preview failed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            },
+            cameraHandler
         )
-        container.addView(sv, 0)
-        return sv
-    }
-
-    private fun setupArSession() {
-        try {
-            // Check ARCore is installed and up to date
-            val availability = ArCoreApk.getInstance().checkAvailability(requireContext())
-            if (!availability.isSupported) {
-                Toast.makeText(requireContext(), "ARCore not supported", Toast.LENGTH_LONG).show()
-                parentFragmentManager.popBackStack()
-                return
-            }
-
-            arSession = Session(requireContext()).also { session ->
-                val config = Config(session).apply {
-                    lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
-                    planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
-                    updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
-                }
-                session.configure(config)
-            }
-
-            // Setup GLSurfaceView
-            surfaceView.apply {
-                preserveEGLContextOnPause = true
-                setEGLContextClientVersion(2)
-                setEGLConfigChooser(8, 8, 8, 8, 16, 0)
-                setRenderer(this@ArCaptureFragment)
-                renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
-            }
-
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "AR setup failed: ${e.message}", Toast.LENGTH_LONG).show()
-            parentFragmentManager.popBackStack()
-        }
-    }
-
-    // GLSurfaceView.Renderer callbacks
-    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
-    }
-
-    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-        GLES20.glViewport(0, 0, width, height)
-        try {
-            arSession?.setDisplayGeometry(
-                requireActivity().windowManager.defaultDisplay.rotation,
-                width, height
-            )
-        } catch (e: Exception) { /* ignore */ }
-    }
-
-    override fun onDrawFrame(gl: GL10?) {
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-        val session = arSession ?: return
-        try {
-            session.setCameraTextureName(0)
-            val frame = session.update()
-            val trackingState = frame.camera.trackingState
-
-            handler.post {
-                if (!isAdded) return@post
-                when (trackingState) {
-                    TrackingState.TRACKING -> {
-                        tvArHint.text = "Find the ${targetObject?.emoji} — hold CAPTURE!"
-                        btnCapture.isEnabled = true
-                    }
-                    TrackingState.PAUSED -> {
-                        tvArHint.text = "Move phone slowly to start AR..."
-                        btnCapture.isEnabled = false
-                    }
-                    else -> {}
-                }
-            }
-        } catch (e: CameraNotAvailableException) {
-            handler.post {
-                if (isAdded) Toast.makeText(
-                    requireContext(), "Camera unavailable", Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
     }
 
     private fun setupCaptureButton() {
@@ -247,32 +239,17 @@ class ArCaptureFragment : Fragment(), GLSurfaceView.Renderer {
         }, 2000L)
     }
 
-    override fun onResume() {
-        super.onResume()
-        try {
-            arSession?.resume()
-            surfaceView.onResume()
-            isArResumed = true
-        } catch (e: CameraNotAvailableException) {
-            Toast.makeText(requireContext(), "Camera not available", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (isArResumed) {
-            surfaceView.onPause()
-            arSession?.pause()
-            isArResumed = false
-        }
-        cancelCapture()
+    private fun closeCamera() {
+        captureSession?.close()
+        captureSession = null
+        cameraDevice?.close()
+        cameraDevice = null
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         captureAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
-        arSession?.close()
-        arSession = null
+        closeCamera()
     }
 }

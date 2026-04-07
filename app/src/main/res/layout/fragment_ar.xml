@@ -4,12 +4,23 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <android.opengl.GLSurfaceView
+    <!-- Camera feed fills entire screen -->
+    <TextureView
         android:id="@+id/arSceneView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Top bar: back button + object info -->
+    <!-- Emoji floating in AR space — centred on screen -->
+    <TextView
+        android:id="@+id/tv_emoji_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="80dp"
+        android:text="🔥"
+        android:textSize="72sp" />
+
+    <!-- Top bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -22,8 +33,8 @@
             android:id="@+id/btn_back"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="Back"
             android:backgroundTint="#333333"
+            android:text="Back"
             android:textColor="#FFFFFF"
             android:textSize="12sp" />
 
@@ -50,7 +61,7 @@
 
     </LinearLayout>
 
-    <!-- Centre reticle — tap-hold target -->
+    <!-- Reticle centre -->
     <FrameLayout
         android:layout_width="120dp"
         android:layout_height="120dp"
@@ -72,7 +83,7 @@
 
     </FrameLayout>
 
-    <!-- Bottom: capture button -->
+    <!-- Bottom capture UI -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -86,24 +97,24 @@
             android:id="@+id/tv_capture_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
             android:text="Hold CAPTURE to catch it!"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:layout_marginBottom="12dp"/>
+            android:textSize="14sp" />
 
         <Button
             android:id="@+id/btn_capture"
             android:layout_width="180dp"
             android:layout_height="56dp"
-            android:text="CAPTURE"
             android:backgroundTint="#7F77DD"
+            android:text="CAPTURE"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
 
     </LinearLayout>
 
-    <!-- Capture success overlay — shown briefly on capture -->
+    <!-- Success overlay -->
     <LinearLayout
         android:id="@+id/capture_success_overlay"
         android:layout_width="match_parent"
