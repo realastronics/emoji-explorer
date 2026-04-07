@@ -186,8 +186,9 @@ class MapFragment : Fragment() {
     private fun setupMap() {
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
-        mapView.controller.setZoom(19.0)
-        val bmlCenter = GeoPoint(28.9130, 76.5840)
+        mapView.controller.setZoom(18.0)
+        // Correct BML Munjal coordinates
+        val bmlCenter = GeoPoint(28.2468, 76.8128)
         mapView.controller.setCenter(bmlCenter)
         myLocationOverlay = MyLocationNewOverlay(
             GpsMyLocationProvider(requireContext()), mapView
@@ -203,22 +204,53 @@ class MapFragment : Fragment() {
             val marker = Marker(mapView)
             marker.position = GeoPoint(obj.lat, obj.lng)
             marker.title = "${obj.emoji} ${obj.rarity.label}"
-            marker.snippet = "${obj.rarity.points} pts — get within 15m to capture"
+            marker.snippet = "${obj.rarity.points} pts — get within 15m"
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-
-            // Color-coded icon by rarity
-            val drawableRes = when (obj.rarity) {
-                EmojiObject.Rarity.COMMON   -> R.drawable.marker_common
-                EmojiObject.Rarity.UNCOMMON -> R.drawable.marker_uncommon
-                EmojiObject.Rarity.RARE     -> R.drawable.marker_rare
-                EmojiObject.Rarity.ULTRA    -> R.drawable.marker_ultra
-            }
-            marker.icon = ContextCompat.getDrawable(requireContext(), drawableRes)
+            marker.icon = createEmojiMarker(obj)
             mapView.overlays.add(marker)
             spawnMarkers.add(marker)
         }
         mapView.invalidate()
     }
+
+    private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
+        val size = when (obj.rarity) {
+            EmojiObject.Rarity.COMMON   -> 80
+            EmojiObject.Rarity.UNCOMMON -> 90
+            EmojiObject.Rarity.RARE     -> 100
+            EmojiObject.Rarity.ULTRA    -> 115
+        }
+        val bgColor = when (obj.rarity) {
+            EmojiObject.Rarity.COMMON   -> android.graphics.Color.parseColor("#AA888780")
+            EmojiObject.Rarity.UNCOMMON -> android.graphics.Color.parseColor("#AA378ADD")
+            EmojiObject.Rarity.RARE     -> android.graphics.Color.parseColor("#AA7F77DD")
+            EmojiObject.Rarity.ULTRA    -> android.graphics.Color.parseColor("#AAEF9F27")
+        }
+
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+
+        // Draw circle background
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        paint.color = bgColor
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+
+        // Draw white border
+        paint.color = android.graphics.Color.WHITE
+        paint.style = android.graphics.Paint.Style.STROKE
+        paint.strokeWidth = 4f
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 2, paint)
+
+        // Draw emoji text
+        val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        textPaint.textSize = size * 0.45f
+        textPaint.textAlign = android.graphics.Paint.Align.CENTER
+        val textY = size / 2f - (textPaint.descent() + textPaint.ascent()) / 2
+        canvas.drawText(obj.emoji, size / 2f, textY, textPaint)
+
+        return android.graphics.drawable.BitmapDrawable(resources, bitmap)
+    }
+
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         val locationRequest = LocationRequest.Builder(

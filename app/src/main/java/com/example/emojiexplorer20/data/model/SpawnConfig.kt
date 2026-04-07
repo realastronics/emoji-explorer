@@ -3,30 +3,21 @@ package com.example.emojiexplorer20.data.model
 object SpawnConfig {
 
     val SPAWN_POINTS = listOf(
-        // Main Building entrance
-        EmojiObject("sp_01", 28.58234, 76.63891, "🔥", EmojiObject.Rarity.COMMON),
-        // Library
-        EmojiObject("sp_02", 28.58198, 76.63942, "⭐", EmojiObject.Rarity.UNCOMMON),
-        // Cafeteria
-        EmojiObject("sp_03", 28.58267, 76.63978, "💎", EmojiObject.Rarity.RARE),
-        // Sports Ground
-        EmojiObject("sp_04", 28.58312, 76.63856, "👑", EmojiObject.Rarity.ULTRA),
-        // North Block
-        EmojiObject("sp_05", 28.58178, 76.63820, "🔥", EmojiObject.Rarity.COMMON),
-        // Parking Area
-        EmojiObject("sp_06", 28.58345, 76.63910, "⭐", EmojiObject.Rarity.UNCOMMON),
-        // Admin Block
-        EmojiObject("sp_07", 28.58156, 76.63865, "💎", EmojiObject.Rarity.RARE),
-        // Workshop Area
-        EmojiObject("sp_08", 28.58289, 76.64012, "🔥", EmojiObject.Rarity.COMMON),
-        // Auditorium
-        EmojiObject("sp_09", 28.58223, 76.64045, "👑", EmojiObject.Rarity.ULTRA),
-        // Girls Hostel Road
-        EmojiObject("sp_10", 28.58134, 76.63798, "⭐", EmojiObject.Rarity.UNCOMMON),
-        // Boys Hostel
-        EmojiObject("sp_11", 28.58367, 76.63845, "🔥", EmojiObject.Rarity.COMMON),
-        // Football Ground
-        EmojiObject("sp_12", 28.58401, 76.63923, "💎", EmojiObject.Rarity.RARE),
+        // Spot 1 — your first coordinate
+        EmojiObject("sp_01", 28.2463, 76.8120, "🔥", EmojiObject.Rarity.COMMON),
+        // Spot 2 — your second coordinate
+        EmojiObject("sp_02", 28.2475, 76.8136, "⭐", EmojiObject.Rarity.UNCOMMON),
+        // Spread around campus — ~30-50m apart from your two anchor points
+        EmojiObject("sp_03", 28.2468, 76.8128, "💎", EmojiObject.Rarity.RARE),
+        EmojiObject("sp_04", 28.2458, 76.8142, "👑", EmojiObject.Rarity.ULTRA),
+        EmojiObject("sp_05", 28.2480, 76.8115, "🔥", EmojiObject.Rarity.COMMON),
+        EmojiObject("sp_06", 28.2452, 76.8130, "⭐", EmojiObject.Rarity.UNCOMMON),
+        EmojiObject("sp_07", 28.2471, 76.8148, "💎", EmojiObject.Rarity.RARE),
+        EmojiObject("sp_08", 28.2485, 76.8138, "🔥", EmojiObject.Rarity.COMMON),
+        EmojiObject("sp_09", 28.2460, 76.8108, "👑", EmojiObject.Rarity.ULTRA),
+        EmojiObject("sp_10", 28.2477, 76.8122, "⭐", EmojiObject.Rarity.UNCOMMON),
+        EmojiObject("sp_11", 28.2455, 76.8145, "🔥", EmojiObject.Rarity.COMMON),
+        EmojiObject("sp_12", 28.2482, 76.8130, "💎", EmojiObject.Rarity.RARE),
     )
 
     const val PROXIMITY_RADIUS_M        = 15.0
