@@ -7,8 +7,16 @@ data class EmojiObject(
     val emoji: String,
     val rarity: Rarity,
     var isCaptured: Boolean = false,
-    val respawnDelayMs: Long = 120_000L
+    val respawnDelayMs: Long = 120_000L,
+    // Track which teams have captured this object
+    val capturedByTeams: MutableSet<String> = mutableSetOf()
 ) {
+    fun isCapturedByTeam(teamId: String) = capturedByTeams.contains(teamId)
+
+    fun captureForTeam(teamId: String) {
+        capturedByTeams.add(teamId)
+    }
+
     enum class Rarity(val points: Int, val label: String, val color: String) {
         COMMON(10, "Common", "#888780"),
         UNCOMMON(25, "Uncommon", "#378ADD"),

@@ -63,6 +63,13 @@ class MapFragment : Fragment() {
     private var sessionTimeLeftMs = 30 * 60 * 1000L
 
     private val spawnMarkers = mutableListOf<Marker>()
+    private var capturedEmojis = 0
+
+    private fun updateCaptureStats() {
+        tvScore?.post {
+            tvScore?.text = "$currentScore pts |  $capturedEmojis"
+        }
+    }
 
     companion object {
         fun newInstance(teamName: String, teamId: String): MapFragment {
@@ -113,10 +120,12 @@ class MapFragment : Fragment() {
             nearestObject?.let { obj ->
                 val arFragment = ArCaptureFragment.newInstance(obj.id, teamId)
                 arFragment.onCaptureSuccess = { capturedObj ->
+                    // Mark as captured for THIS team only
+                    capturedObj.captureForTeam(teamId)
+                    capturedEmojis++
                     addPoints(capturedObj.rarity.points)
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        capturedObj.isCaptured = false
-                    }, capturedObj.respawnDelayMs)
+                    updateCaptureStats()
+                    // Object respawns for OTHER teams — no global isCaptured needed
                 }
                 parentFragmentManager.beginTransaction()
                     .replace(R.id.fragment_container, arFragment)
@@ -300,7 +309,8 @@ class MapFragment : Fragment() {
         var closestObj: EmojiObject? = null
 
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
-            if (obj.isCaptured) return@forEach
+            // Skip if THIS team already captured it
+            if (obj.isCapturedByTeam(teamId)) return@forEach
             val dist = GpsUtils.distanceMetres(
                 location.latitude, location.longitude,
                 obj.lat, obj.lng
