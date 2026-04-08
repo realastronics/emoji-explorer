@@ -56,46 +56,28 @@ class MainActivity : AppCompatActivity() {
     private fun checkArCoreAndProceed() {
         val availability = ArCoreApk.getInstance().checkAvailability(this)
         if (availability.isSupported) {
-            showTeamNameDialog()
-        } else {
-            Toast.makeText(
-                this,
-                "ARCore not supported on this device",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    private fun showTeamNameDialog() {
-        val input = android.widget.EditText(this).apply {
-            hint = "Enter your team name"
-            setPadding(40, 20, 40, 20)
-        }
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Welcome to Emoji Explorer!")
-            .setMessage("What is your team name?")
-            .setView(input)
-            .setCancelable(false)
-            .setPositiveButton("Let's Go!") { _, _ ->
-                val name = input.text.toString().trim()
-                    .ifEmpty { "Team ${(100..999).random()}" }
-                registerAndLaunch(name)
-            }
-            .show()
-    }
-
-    private fun registerAndLaunch(teamName: String) {
-        val repo = FirebaseRepository()
-        lifecycleScope.launch {
-            val result = repo.registerTeam(teamName)
-            val team = result.getOrNull()
-            val teamId = team?.id ?: ""
-            supportFragmentManager.beginTransaction()
-                .replace(
-                    R.id.fragment_container,
-                    MapFragment.newInstance(teamName, teamId)
+            // Check if launched from TeamEntryActivity with team data
+            val teamName = intent.getStringExtra("team_name")
+            val teamId = intent.getStringExtra("team_id")
+            if (teamName != null && teamId != null) {
+                supportFragmentManager.beginTransaction()
+                    .replace(
+                        R.id.fragment_container,
+                        com.example.emojiexplorer20.ui.map.MapFragment
+                            .newInstance(teamName, teamId)
+                    )
+                    .commit()
+            } else {
+                // Fallback — go to team entry
+                startActivity(
+                    android.content.Intent(this, TeamEntryActivity::class.java)
                 )
-                .commit()
+                finish()
+            }
+        } else {
+            Toast.makeText(this, "ARCore not supported", Toast.LENGTH_LONG).show()
         }
     }
+
+
 }

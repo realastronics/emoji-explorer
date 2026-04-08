@@ -44,7 +44,7 @@ class SplashActivity : AppCompatActivity() {
 
         // Launch MainActivity after animation
         handler.postDelayed({
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, TeamEntryActivity::class.java))
             finish()
         }, 3000L)
     }

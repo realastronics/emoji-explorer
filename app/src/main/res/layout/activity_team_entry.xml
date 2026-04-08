@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0A">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_gravity="top"
+        android:background="#E8002D" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_gravity="bottom"
+        android:background="#E8002D" />
+
+    <!-- Diagonal speed lines background -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="EMOJI EXPLORER"
+            android:textColor="#E8002D"
+            android:textSize="13sp"
+            android:letterSpacing="0.4"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="REGISTER YOUR TEAM"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="40dp"/>
+
+        <!-- Team name input card -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/input_card_bg"
+            android:padding="20dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TEAM NAME"
+                    android:textColor="#E8002D"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.3"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/et_team_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/input_field_bg"
+                    android:hint="e.g. Red Racers"
+                    android:textColorHint="#444444"
+                    android:inputType="text"
+                    android:maxLength="20"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"/>
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <!-- Driver number input -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/input_card_bg"
+            android:padding="20dp"
+            android:layout_marginBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DRIVER NUMBER (1-99)"
+                    android:textColor="#E8002D"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.3"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/et_driver_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/input_field_bg"
+                    android:hint="44"
+                    android:textColorHint="#444444"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"/>
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <!-- Start Race button -->
+        <Button
+            android:id="@+id/btn_start_race"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_race_bg"
+            android:text="START RACE"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.2"/>
+
+        <TextView
+            android:id="@+id/tv_entry_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:text=""
+            android:textColor="#666666"
+            android:textSize="13sp"/>
+
+    </LinearLayout>
+
+</FrameLayout>
