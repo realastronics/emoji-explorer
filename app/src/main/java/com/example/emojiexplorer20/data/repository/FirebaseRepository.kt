@@ -65,6 +65,15 @@ class FirebaseRepository {
         }
     }
 
+    suspend fun getTeamName(teamId: String): String {
+        return try {
+            val doc = teamsCollection.document(teamId).get().await()
+            doc.getString("name") ?: "Unknown Team"
+        } catch (e: Exception) {
+            "Unknown Team"
+        }
+    }
+
     // --- Real-time leaderboard as a Flow ---
     fun leaderboardFlow(): Flow<List<Team>> = callbackFlow {
         leaderboardListener = teamsCollection
@@ -94,6 +103,33 @@ class FirebaseRepository {
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    suspend fun applyBlackout(fromTeamId: String, fromTeamName: String, targetTeamId: String): Result<Unit> {
+        return try {
+            val expiryTime = System.currentTimeMillis() + 7000L
+            teamsCollection.document(targetTeamId).update(
+                mapOf(
+                    "debuffs.BLACKOUT" to expiryTime,
+                    "debuffs.BLACKOUT_FROM" to fromTeamName
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun listenForBlackout(teamId: String, onBlackout: (attackerName: String) -> Unit) {
+        teamsCollection.document(teamId).addSnapshotListener { snapshot, _ ->
+            if (snapshot == null) return@addSnapshotListener
+            val debuffs = snapshot.get("debuffs") as? Map<*, *> ?: return@addSnapshotListener
+            val expiryTime = (debuffs["BLACKOUT"] as? Long) ?: return@addSnapshotListener
+            val attackerName = (debuffs["BLACKOUT_FROM"] as? String) ?: "Unknown Team"
+            if (System.currentTimeMillis() < expiryTime) {
+                onBlackout(attackerName)
+            }
         }
     }
 

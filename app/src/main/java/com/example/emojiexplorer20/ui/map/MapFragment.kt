@@ -37,6 +37,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import androidx.core.content.ContextCompat
 import android.widget.LinearLayout
+import android.widget.FrameLayout
 
 class MapFragment : Fragment() {
 
@@ -69,6 +70,12 @@ class MapFragment : Fragment() {
     private var tvDirectionArrow: TextView? = null
     private var tvDirectionDist: TextView? = null
     private var tvCaptureStats: TextView? = null
+
+    private var blackoutOverlay: FrameLayout? = null
+    private var tvBlackoutMessage: TextView? = null
+    private var tvBlackoutAttacker: TextView? = null
+    private var tvBlackoutTimer: TextView? = null
+    private val blackoutHandler = Handler(Looper.getMainLooper())
 
     companion object {
         fun newInstance(teamName: String, teamId: String): MapFragment {
@@ -110,7 +117,11 @@ class MapFragment : Fragment() {
         tvDirectionArrow = view.findViewById(R.id.tv_direction_arrow)
         tvDirectionDist = view.findViewById(R.id.tv_direction_dist)
         tvCaptureStats = view.findViewById(R.id.tv_capture_stats)
-        updateCaptureStats()
+        blackoutOverlay = view.findViewById(R.id.blackout_overlay)
+        tvBlackoutMessage = view.findViewById(R.id.tv_blackout_message)
+        tvBlackoutAttacker = view.findViewById(R.id.tv_blackout_attacker)
+        tvBlackoutTimer = view.findViewById(R.id.tv_blackout_timer)
+        startBlackoutListener()
 
         tvTeamName?.text = teamName
 
@@ -120,6 +131,7 @@ class MapFragment : Fragment() {
         startScoreSync()
         startSessionTimer()
         startRadarAnimation()
+        updateCaptureStats()
 
         btnOpenAr?.setOnClickListener {
             nearestObject?.let { obj ->
@@ -288,6 +300,36 @@ class MapFragment : Fragment() {
         ).toInt()}m"
     }
 
+    private fun startBlackoutListener() {
+        if (teamId.isEmpty()) return
+        repository.listenForBlackout(teamId) { attackerName ->
+            triggerBlackout(attackerName)
+        }
+    }
+
+    private fun triggerBlackout(attackerName: String) {
+        if (!isAdded) return
+        activity?.runOnUiThread {
+            tvBlackoutAttacker?.text = "by $attackerName"
+            blackoutOverlay?.visibility = View.VISIBLE
+
+            // Countdown 7 seconds
+            var secondsLeft = 7
+            val countdownRunner = object : Runnable {
+                override fun run() {
+                    if (secondsLeft <= 0) {
+                        blackoutOverlay?.visibility = View.GONE
+                        return
+                    }
+                    tvBlackoutTimer?.text = secondsLeft.toString()
+                    secondsLeft--
+                    blackoutHandler.postDelayed(this, 1000L)
+                }
+            }
+            blackoutHandler.post(countdownRunner)
+        }
+    }
+
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
         val size = when (obj.rarity) {
             EmojiObject.Rarity.COMMON   -> 80
@@ -430,6 +472,7 @@ class MapFragment : Fragment() {
         }
         syncHandler.removeCallbacksAndMessages(null)
         timerHandler.removeCallbacksAndMessages(null)
+        blackoutHandler.removeCallbacksAndMessages(null)
     }
 
     override fun onDestroyView() {

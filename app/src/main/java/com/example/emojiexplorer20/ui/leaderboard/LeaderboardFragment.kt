@@ -95,16 +95,30 @@ class LeaderboardFragment : Fragment() {
     }
 
     private fun showPowerUpDialog(targetTeam: Team) {
-        val options = PowerUpType.values()
-        val items = options.map { it.label }.toTypedArray()
-
+        val options = arrayOf(
+            "Slow Crawl — slow their capture",
+            "Shrink Zone — reduce their range",
+            "BLACKOUT — blind them for 7 seconds"
+        )
         android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Apply power-up to ${targetTeam.name}")
-            .setItems(items) { _, which ->
-                applyPowerUp(targetTeam, options[which])
+            .setTitle("Attack ${targetTeam.name}")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> applyPowerUp(targetTeam, PowerUpType.SLOW_CAPTURE)
+                    1 -> applyPowerUp(targetTeam, PowerUpType.SHRINK_ZONE)
+                    2 -> applyBlackout(targetTeam)
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun applyBlackout(targetTeam: Team) {
+        lifecycleScope.launch {
+            // Get current team name for the message
+            val teamsSnapshot = repository.getTeamName(currentTeamId)
+            repository.applyBlackout(currentTeamId, teamsSnapshot, targetTeam.id)
+        }
     }
 
     private fun applyPowerUp(targetTeam: Team, type: PowerUpType) {
