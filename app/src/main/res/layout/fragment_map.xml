@@ -54,6 +54,37 @@
         android:background="@drawable/proximity_ring"
         android:visibility="gone" />
 
+    <!-- Direction arrow to nearest emoji -->
+    <LinearLayout
+        android:id="@+id/arrow_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="200dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_direction_arrow"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:text="▲"
+            android:textColor="#E8002D"
+            android:textSize="36sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tv_direction_dist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="50m"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"/>
+
+    </LinearLayout>
+
     <!-- Bottom card -->
     <LinearLayout
         android:layout_width="match_parent"

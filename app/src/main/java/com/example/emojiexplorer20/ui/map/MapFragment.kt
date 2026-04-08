@@ -36,6 +36,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import androidx.core.content.ContextCompat
+import android.widget.LinearLayout
 
 class MapFragment : Fragment() {
 
@@ -64,6 +65,9 @@ class MapFragment : Fragment() {
 
     private val spawnMarkers = mutableListOf<Marker>()
     private var capturedEmojis = 0
+    private var arrowContainer: LinearLayout? = null
+    private var tvDirectionArrow: TextView? = null
+    private var tvDirectionDist: TextView? = null
 
     private fun updateCaptureStats() {
         tvScore?.post {
@@ -107,6 +111,9 @@ class MapFragment : Fragment() {
         tvTeamName = view.findViewById(R.id.tv_team_name)
         btnOpenAr = view.findViewById(R.id.btn_open_ar)
         proximityRing = view.findViewById(R.id.proximity_ring)
+        arrowContainer = view.findViewById(R.id.arrow_container)
+        tvDirectionArrow = view.findViewById(R.id.tv_direction_arrow)
+        tvDirectionDist = view.findViewById(R.id.tv_direction_dist)
 
         tvTeamName?.text = teamName
 
@@ -243,6 +250,19 @@ class MapFragment : Fragment() {
         mapView.invalidate()
     }
 
+    private fun updateDirectionArrow(location: Location, target: EmojiObject) {
+        val bearing = GpsUtils.bearingTo(
+            location.latitude, location.longitude,
+            target.lat, target.lng
+        )
+        arrowContainer?.visibility = View.VISIBLE
+        tvDirectionArrow?.rotation = bearing
+        tvDirectionDist?.text = "${GpsUtils.distanceMetres(
+            location.latitude, location.longitude,
+            target.lat, target.lng
+        ).toInt()}m"
+    }
+
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
         val size = when (obj.rarity) {
             EmojiObject.Rarity.COMMON   -> 80
@@ -343,6 +363,14 @@ class MapFragment : Fragment() {
                 btnOpenAr?.visibility = View.GONE
                 proximityRing?.visibility = View.GONE
             }
+        }
+        // Show direction arrow when not in capture range
+        if (closestDist > SpawnConfig.AR_TRIGGER_RADIUS_M && closestObj != null) {
+            lastLocation?.let { loc ->
+                updateDirectionArrow(loc, closestObj!!)
+            }
+        } else {
+            arrowContainer?.visibility = View.GONE
         }
     }
 
