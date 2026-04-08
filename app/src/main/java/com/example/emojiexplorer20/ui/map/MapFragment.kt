@@ -68,12 +68,7 @@ class MapFragment : Fragment() {
     private var arrowContainer: LinearLayout? = null
     private var tvDirectionArrow: TextView? = null
     private var tvDirectionDist: TextView? = null
-
-    private fun updateCaptureStats() {
-        tvScore?.post {
-            tvScore?.text = "$currentScore pts |  $capturedEmojis"
-        }
-    }
+    private var tvCaptureStats: TextView? = null
 
     companion object {
         fun newInstance(teamName: String, teamId: String): MapFragment {
@@ -114,6 +109,8 @@ class MapFragment : Fragment() {
         arrowContainer = view.findViewById(R.id.arrow_container)
         tvDirectionArrow = view.findViewById(R.id.tv_direction_arrow)
         tvDirectionDist = view.findViewById(R.id.tv_direction_dist)
+        tvCaptureStats = view.findViewById(R.id.tv_capture_stats)
+        updateCaptureStats()
 
         tvTeamName?.text = teamName
 
@@ -150,6 +147,11 @@ class MapFragment : Fragment() {
                 .addToBackStack("leaderboard")
                 .commit()
         }
+    }
+
+    private fun updateCaptureStats() {
+        val total = SpawnConfig.SPAWN_POINTS.size
+        tvCaptureStats?.text = "$capturedEmojis / $total"
     }
 
     private fun startScoreSync() {

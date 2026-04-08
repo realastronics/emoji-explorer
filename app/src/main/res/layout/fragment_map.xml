@@ -16,9 +16,20 @@
         android:background="#E6000000"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
+        <!-- App name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="E2"
+            android:textColor="#E8002D"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingEnd="8dp"/>
+
+        <!-- Team name + timer -->
         <TextView
             android:id="@+id/tv_team_name"
             android:layout_width="0dp"
@@ -26,9 +37,12 @@
             android:layout_weight="1"
             android:text="Team"
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
+        <!-- Score badge -->
         <TextView
             android:id="@+id/tv_score"
             android:layout_width="wrap_content"
@@ -39,9 +53,9 @@
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
             android:text="0 pts"
-            android:textColor="#EF9F27"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textColor="#E8002D"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
 
     </LinearLayout>
 
@@ -84,6 +98,24 @@
             android:textSize="12sp"/>
 
     </LinearLayout>
+
+    <!-- Capture stats bottom left -->
+    <TextView
+        android:id="@+id/tv_capture_stats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="180dp"
+        android:background="@drawable/stats_badge_bg"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:text="0 / 12"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold"/>
 
     <!-- Bottom card -->
     <LinearLayout
