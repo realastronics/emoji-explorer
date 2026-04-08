@@ -25,9 +25,17 @@ class LeaderboardFragment : Fragment() {
     private var teams: List<Team> = emptyList()
 
     companion object {
-        fun newInstance(teamId: String): LeaderboardFragment {
+        fun newInstance(
+            teamId: String,
+            teamName: String = "",
+            heldPowerUp: String? = null
+        ): LeaderboardFragment {
             val f = LeaderboardFragment()
-            f.arguments = Bundle().apply { putString("team_id", teamId) }
+            f.arguments = Bundle().apply {
+                putString("team_id", teamId)
+                putString("team_name", teamName)
+                if (heldPowerUp != null) putString("held_power_up", heldPowerUp)
+            }
             return f
         }
     }
@@ -41,6 +49,12 @@ class LeaderboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         repository = FirebaseRepository()
         currentTeamId = arguments?.getString("team_id") ?: ""
+
+        val heldPowerUpName = arguments?.getString("held_power_up")
+        val heldPowerUp = heldPowerUpName?.let {
+            try { PowerUpType.valueOf(it) } catch (e: Exception) { null }
+        }
+
         leaderboardContainer = view.findViewById(R.id.leaderboard_container)
 
         view.findViewById<Button>(R.id.btn_close_leaderboard).setOnClickListener {

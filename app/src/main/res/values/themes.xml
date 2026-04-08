@@ -1,9 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.EmojiExplorer20" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <style name="Theme.EmojiExplorer20" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">#1A0000</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">#0A0A0A</item>
+        <!-- Primary colors -->
+        <item name="colorPrimary">#E8002D</item>
+        <item name="colorPrimaryVariant">#B8001F</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSurface">#0A0A0A</item>
+        <item name="android:windowBackground">#0A0A0A</item>
     </style>
-
-    <style name="Theme.EmojiExplorer20" parent="Base.Theme.EmojiExplorer20" />
 </resources>
