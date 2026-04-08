@@ -219,12 +219,11 @@ class MapFragment : Fragment() {
     }
 
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
-        // Invert colors + red tint = dark map with red roads
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
-            -0.6f,  0f,    0f,    0f,  180f,   // Red channel — boost
-            0f,   -0.5f,  0f,    0f,  120f,   // Green channel — suppress
-            0f,    0f,   -0.5f,  0f,  120f,   // Blue channel — suppress
-            0f,    0f,    0f,    1f,    0f    // Alpha unchanged
+            1.3f, 0f,   0f,   0f,  -20f, // Red channel (boost + slight warmth)
+            0f,   1.0f, 0f,   0f,  -30f, // Green channel (slightly reduced)
+            0f,   0f,   0.9f, 0f,  -30f, // Blue channel (reduced for warmer tone)
+            0f,   0f,   0f,   1f,   0f // Alpha
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)
     }
