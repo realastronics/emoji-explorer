@@ -119,6 +119,7 @@ class MapFragment : Fragment() {
         startLocationUpdates()
         startScoreSync()
         startSessionTimer()
+        startRadarAnimation()
 
         btnOpenAr?.setOnClickListener {
             nearestObject?.let { obj ->
@@ -235,6 +236,28 @@ class MapFragment : Fragment() {
             0f,   0f,   0f,   1f,   0f // Alpha
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)
+    }
+
+    private fun startRadarAnimation() {
+        val ring1 = view?.findViewById<View>(R.id.radar_ring_1) ?: return
+        val ring2 = view?.findViewById<View>(R.id.radar_ring_2) ?: return
+
+        fun pulseRing(ring: View, delay: Long) {
+            ring.scaleX = 0.2f
+            ring.scaleY = 0.2f
+            ring.alpha = 0.8f
+            ring.animate()
+                .scaleX(1.8f)
+                .scaleY(1.8f)
+                .alpha(0f)
+                .setDuration(2000)
+                .setStartDelay(delay)
+                .withEndAction { pulseRing(ring, 0) }
+                .start()
+        }
+
+        pulseRing(ring1, 0)
+        pulseRing(ring2, 1000)
     }
 
     private fun setupSpawnMarkers() {
