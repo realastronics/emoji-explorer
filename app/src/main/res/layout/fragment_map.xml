@@ -1,40 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Map -->
     <org.osmdroid.views.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Radar rings -->
+    <!-- Radar scan overlay — centred on player -->
     <FrameLayout
         android:id="@+id/radar_container"
         android:layout_width="200dp"
         android:layout_height="200dp"
-        android:layout_gravity="center">
+        android:layout_gravity="center"
+        android:visibility="visible">
+
         <View
             android:id="@+id/radar_ring_1"
             android:layout_width="200dp"
             android:layout_height="200dp"
             android:background="@drawable/radar_ring"
-            android:alpha="0"/>
+            android:alpha="0" />
+
         <View
             android:id="@+id/radar_ring_2"
             android:layout_width="200dp"
             android:layout_height="200dp"
             android:background="@drawable/radar_ring"
-            android:alpha="0"/>
+            android:alpha="0" />
+
     </FrameLayout>
 
-    <!-- Blackout overlay -->
+    <!-- Blackout overlay — shown when team is attacked -->
     <FrameLayout
         android:id="@+id/blackout_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#FF000000"
         android:visibility="gone">
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -42,6 +49,7 @@
             android:gravity="center"
             android:orientation="vertical"
             android:padding="32dp">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -49,7 +57,9 @@
                 android:textColor="#E8002D"
                 android:textSize="64sp"
                 android:layout_marginBottom="16dp"/>
+
             <TextView
+                android:id="@+id/tv_blackout_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
@@ -58,6 +68,7 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
+
             <TextView
                 android:id="@+id/tv_blackout_attacker"
                 android:layout_width="wrap_content"
@@ -65,6 +76,7 @@
                 android:text="by Team Alpha"
                 android:textColor="#E8002D"
                 android:textSize="16sp"/>
+
             <TextView
                 android:id="@+id/tv_blackout_timer"
                 android:layout_width="wrap_content"
@@ -74,39 +86,43 @@
                 android:textColor="#666666"
                 android:textSize="32sp"
                 android:textStyle="bold"/>
+
         </LinearLayout>
+
     </FrameLayout>
 
     <!-- Top HUD -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="56dp"
         android:layout_gravity="top"
-        android:background="#F0000000"
+        android:background="#E6000000"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="12dp"
         android:paddingEnd="12dp">
-        <ImageView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:src="@mipmap/emoji_explorer_logo"
-            android:scaleType="fitCenter"
-            android:layout_marginEnd="10dp"/>
-        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="E2"
+            android:textColor="#E8002D"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingEnd="8dp"/>
+
         <TextView
             android:id="@+id/tv_team_name"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:gravity="center"
+            android:layout_weight="1"
             android:text="Team"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end"/>
-        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+
         <TextView
             android:id="@+id/tv_score"
             android:layout_width="wrap_content"
@@ -114,22 +130,23 @@
             android:background="@drawable/score_badge"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="5dp"
-            android:paddingBottom="5dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:text="0 pts"
             android:textColor="#E8002D"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold"/>
+
     </LinearLayout>
 
-    <!-- Proximity ring -->
+    <!-- Proximity ring pulse -->
     <View
         android:id="@+id/proximity_ring"
         android:layout_width="160dp"
         android:layout_height="160dp"
         android:layout_gravity="center"
         android:background="@drawable/proximity_ring"
-        android:visibility="gone"/>
+        android:visibility="gone" />
 
     <!-- Direction arrow -->
     <LinearLayout
@@ -137,167 +154,45 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginBottom="220dp"
+        android:layout_marginBottom="200dp"
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone">
-        <FrameLayout
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/arrow_circle_bg">
-            <TextView
-                android:id="@+id/tv_direction_arrow"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="↑"
-                android:textColor="#FFFFFF"
-                android:textSize="28sp"
-                android:textStyle="bold"/>
-        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tv_direction_arrow"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:text="▲"
+            android:textColor="#E8002D"
+            android:textSize="36sp"
+            android:textStyle="bold"/>
+
         <TextView
             android:id="@+id/tv_direction_dist"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/stats_badge_bg"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
             android:text="50m"
             android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold"/>
-    </LinearLayout>
-
-    <!-- Right side buttons — compass + recenter -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|center_vertical"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="200dp"
-        android:orientation="vertical">
-
-        <!-- Compass north-up button -->
-        <FrameLayout
-            android:id="@+id/btn_compass"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/map_btn_bg"
-            android:layout_marginBottom="10dp">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="N"
-                android:textColor="#E8002D"
-                android:textSize="16sp"
-                android:textStyle="bold"/>
-        </FrameLayout>
-
-        <!-- Re-center button -->
-        <FrameLayout
-            android:id="@+id/btn_recenter"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/map_btn_bg">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="⊙"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"/>
-        </FrameLayout>
+            android:textSize="12sp"/>
 
     </LinearLayout>
 
-    <!-- Bottom left radar widget — inspired by reference image -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="12dp"
-        android:layout_marginBottom="160dp"
-        android:background="@drawable/radar_widget_bg"
-        android:orientation="vertical"
-        android:padding="10dp">
-
-        <!-- Sonar icon -->
-        <FrameLayout
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_gravity="center_horizontal">
-            <View
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:background="@drawable/radar_ring"/>
-            <View
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="center"
-                android:background="@drawable/radar_ring"/>
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="◉"
-                android:textColor="#00FFCC"
-                android:textSize="20sp"/>
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/tv_detected_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="6dp"
-            android:background="@drawable/detected_badge_bg"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:text="DETECTED: 0"
-            android:textColor="#00FFCC"
-            android:textSize="10sp"
-            android:textStyle="bold"/>
-
-        <TextView
-            android:id="@+id/tv_closest_dist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/closest_badge_bg"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:text="Closest: --"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:textStyle="bold"/>
-
-    </LinearLayout>
-
-    <!-- Capture stats — clickable opens vault -->
+    <!-- Capture stats -->
     <TextView
         android:id="@+id/tv_capture_stats"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="160dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="180dp"
         android:background="@drawable/stats_badge_bg"
-        android:clickable="true"
-        android:focusable="true"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
         android:paddingTop="6dp"
         android:paddingBottom="6dp"
-        android:text="0 / 15"
+        android:text="0 / 12"
         android:textColor="#FFFFFF"
         android:textSize="13sp"
         android:textStyle="bold"/>
@@ -311,24 +206,50 @@
         android:orientation="vertical"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingTop="14dp"
+        android:paddingTop="16dp"
         android:paddingBottom="24dp">
 
+        <!-- Rarity legend row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="● Common" android:textColor="#888780" android:textSize="11sp" android:paddingEnd="8dp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="● Uncommon" android:textColor="#378ADD" android:textSize="11sp" android:paddingEnd="8dp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="● Rare" android:textColor="#7F77DD" android:textSize="11sp" android:paddingEnd="8dp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="● Ultra" android:textColor="#EF9F27" android:textSize="11sp"/>
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="● Common"
+                android:textColor="#888780"
+                android:textSize="11sp"
+                android:paddingEnd="10dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="● Uncommon"
+                android:textColor="#378ADD"
+                android:textSize="11sp"
+                android:paddingEnd="10dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="● Rare"
+                android:textColor="#7F77DD"
+                android:textSize="11sp"
+                android:paddingEnd="10dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="● Ultra"
+                android:textColor="#EF9F27"
+                android:textSize="11sp"/>
+
         </LinearLayout>
+
 
         <TextView
             android:id="@+id/tv_nearest_hint"
@@ -338,28 +259,28 @@
             android:text="Move to find emojis"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
-            android:layout_marginBottom="10dp"/>
+            android:layout_marginBottom="12dp"/>
 
         <Button
             android:id="@+id/btn_open_ar"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginBottom="8dp"
-            android:backgroundTint="#E8002D"
+            android:backgroundTint="#7F77DD"
             android:text="CAPTURE"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btn_leaderboard"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:backgroundTint="#1A1A1A"
+            android:backgroundTint="#222222"
             android:text="Leaderboard"
             android:textColor="#AAAAAA"
-            android:textSize="13sp"/>
+            android:textSize="13sp" />
 
     </LinearLayout>
 

@@ -8,16 +8,13 @@ data class EmojiObject(
     val rarity: Rarity,
     var isCaptured: Boolean = false,
     val respawnDelayMs: Long = 120_000L,
-    val capturedByTeams: MutableSet<String> = mutableSetOf(),
-    val type: ObjectType = ObjectType.COLLECTIBLE,
-    val powerUpType: PowerUpType? = null
+    // Track which teams have captured this object
+    val capturedByTeams: MutableSet<String> = mutableSetOf()
 ) {
     fun isCapturedByTeam(teamId: String) = capturedByTeams.contains(teamId)
-    fun captureForTeam(teamId: String) { capturedByTeams.add(teamId) }
 
-    enum class ObjectType {
-        COLLECTIBLE,
-        POWERUP
+    fun captureForTeam(teamId: String) {
+        capturedByTeams.add(teamId)
     }
 
     enum class Rarity(val points: Int, val label: String, val color: String) {
@@ -48,5 +45,6 @@ data class PowerUp(
     val appliedAt: Long = System.currentTimeMillis(),
     val durationMs: Long = type.durationMs
 ) {
-    fun isActive(): Boolean = System.currentTimeMillis() < appliedAt + durationMs
+    fun isActive(): Boolean =
+        System.currentTimeMillis() < appliedAt + durationMs
 }
