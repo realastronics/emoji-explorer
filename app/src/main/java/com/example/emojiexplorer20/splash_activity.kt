@@ -47,6 +47,9 @@ class SplashActivity : AppCompatActivity() {
             startActivity(Intent(this, TeamEntryActivity::class.java))
             finish()
         }, 3000L)
+
+
+
     }
 
     private fun Int.dpToPx(): Int =

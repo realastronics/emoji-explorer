@@ -33,10 +33,11 @@
             android:name=".SplashActivity"
             android:exported="true"
             android:screenOrientation="portrait"
+            android:keepScreenOn="true"
             android:theme="@style/Theme.EmojiExplorer20">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
@@ -44,13 +45,14 @@
             android:name=".TeamEntryActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            android:keepScreenOn="true"
             android:windowSoftInputMode="adjustResize"/>
-
         <activity
             android:name=".MainActivity"
             android:exported="false"
-            android:screenOrientation="fullSensor"
-            android:configChanges="orientation|screenSize" />
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:keepScreenOn="true"/>
 
     </application>
 

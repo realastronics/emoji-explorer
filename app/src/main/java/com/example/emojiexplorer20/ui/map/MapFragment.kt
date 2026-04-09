@@ -37,6 +37,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import androidx.core.content.ContextCompat
 import android.widget.LinearLayout
+import com.example.emojiexplorer20.utils.RadarOverlay
 import android.widget.FrameLayout
 
 class MapFragment : Fragment() {
@@ -76,6 +77,13 @@ class MapFragment : Fragment() {
     private var tvBlackoutAttacker: TextView? = null
     private var tvBlackoutTimer: TextView? = null
     private val blackoutHandler = Handler(Looper.getMainLooper())
+
+    private val radarOverlay = RadarOverlay()
+    private var radarRadius1 = 0f
+    private var radarRadius2 = 50f
+    private var radarAlpha1 = 200
+    private var radarAlpha2 = 200
+    private val radarHandler = Handler(Looper.getMainLooper())
 
     companion object {
         fun newInstance(teamName: String, teamId: String): MapFragment {
@@ -150,7 +158,9 @@ class MapFragment : Fragment() {
                     .commit()
             }
         }
-
+        activity?.window?.addFlags(
+            android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
         view.findViewById<Button>(R.id.btn_leaderboard).setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(
@@ -220,26 +230,64 @@ class MapFragment : Fragment() {
     }
 
     private fun setupMap() {
-        // Dark tile source for F1 feel
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
+        mapView.overlays.add(radarOverlay)
         mapView.controller.setZoom(18.0)
         val bmlCenter = GeoPoint(28.2468, 76.8128)
         mapView.controller.setCenter(bmlCenter)
-
-        // Dark overlay — tints the map dark with red border feel
-        mapView.overlayManager.tilesOverlay.apply {
-            setColorFilter(getF1ColorFilter())
-        }
+        mapView.overlayManager.tilesOverlay.setColorFilter(getF1ColorFilter())
 
         myLocationOverlay = MyLocationNewOverlay(
             GpsMyLocationProvider(requireContext()), mapView
         )
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
+
+        // Set custom player sprite
+        val spriteBitmap = createPlayerSpriteBitmap()
+        myLocationOverlay.setPersonIcon(spriteBitmap)
+        myLocationOverlay.setDirectionIcon(spriteBitmap)
+
         mapView.overlays.add(myLocationOverlay)
     }
 
+    private fun createPlayerSpriteBitmap(): android.graphics.Bitmap {
+        val size = 80
+        val bitmap = android.graphics.Bitmap.createBitmap(
+            size, size, android.graphics.Bitmap.Config.ARGB_8888
+        )
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+
+        // Outer glow ring
+        paint.color = android.graphics.Color.parseColor("#4400FFCC")
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+
+        // Middle ring
+        paint.color = android.graphics.Color.parseColor("#8800FFCC")
+        canvas.drawCircle(size / 2f, size / 2f, size / 2.8f, paint)
+
+        // Inner solid circle
+        paint.color = android.graphics.Color.parseColor("#00FFCC")
+        canvas.drawCircle(size / 2f, size / 2f, size / 4.5f, paint)
+
+        // White centre dot
+        paint.color = android.graphics.Color.WHITE
+        canvas.drawCircle(size / 2f, size / 2f, size / 9f, paint)
+
+        // Direction triangle on top
+        val triPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        triPaint.color = android.graphics.Color.WHITE
+        val path = android.graphics.Path()
+        path.moveTo(size / 2f, 2f)
+        path.lineTo(size / 2f - 8f, 18f)
+        path.lineTo(size / 2f + 8f, 18f)
+        path.close()
+        canvas.drawPath(path, triPaint)
+
+        return bitmap
+    }
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
             1.3f, 0f,   0f,   0f,  -20f, // Red channel (boost + slight warmth)
@@ -251,27 +299,31 @@ class MapFragment : Fragment() {
     }
 
     private fun startRadarAnimation() {
-        val ring1 = view?.findViewById<View>(R.id.radar_ring_1) ?: return
-        val ring2 = view?.findViewById<View>(R.id.radar_ring_2) ?: return
+        radarHandler.post(object : Runnable {
+            override fun run() {
+                if (!isAdded) return
 
-        fun pulseRing(ring: View, delay: Long) {
-            ring.scaleX = 0.2f
-            ring.scaleY = 0.2f
-            ring.alpha = 0.8f
-            ring.animate()
-                .scaleX(1.8f)
-                .scaleY(1.8f)
-                .alpha(0f)
-                .setDuration(2000)
-                .setStartDelay(delay)
-                .withEndAction { pulseRing(ring, 0) }
-                .start()
-        }
+                // Animate two rings offset by half cycle
+                radarRadius1 = (radarRadius1 + 3f) % 160f
+                radarAlpha1 = (200 * (1f - radarRadius1 / 160f)).toInt().coerceIn(0, 200)
 
-        pulseRing(ring1, 0)
-        pulseRing(ring2, 1000)
+                radarRadius2 = (radarRadius2 + 3f) % 160f
+                radarAlpha2 = (200 * (1f - radarRadius2 / 160f)).toInt().coerceIn(0, 200)
+
+                // Get player screen position from overlay
+                val playerLoc = myLocationOverlay.myLocation
+                if (playerLoc != null) {
+                    val point = mapView.projection.toPixels(playerLoc, null)
+                    radarOverlay.updatePosition(point.x.toFloat(), point.y.toFloat())
+                }
+
+                radarOverlay.updateAnimation(radarRadius1, radarAlpha1, radarRadius2, radarAlpha2)
+                mapView.invalidate()
+
+                radarHandler.postDelayed(this, 32L) // ~30fps
+            }
+        })
     }
-
     private fun setupSpawnMarkers() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
             if (obj.isCaptured) return@forEach
@@ -473,9 +525,13 @@ class MapFragment : Fragment() {
         syncHandler.removeCallbacksAndMessages(null)
         timerHandler.removeCallbacksAndMessages(null)
         blackoutHandler.removeCallbacksAndMessages(null)
+        radarHandler.removeCallbacksAndMessages(null)
     }
 
     override fun onDestroyView() {
+        activity?.window?.clearFlags(
+            android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
         super.onDestroyView()
         GpsUtils.clearHistory()
     }
