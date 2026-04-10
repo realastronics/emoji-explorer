@@ -99,8 +99,8 @@ object SpawnConfig {
     const val CAPTURE_HOLD_MS        = 1800L
     const val CAPTURE_HOLD_SLOW_MS   = 3600L
     const val SHRINK_ZONE_RADIUS_M   = 3.0
-    const val GPS_ACCURACY_GATE_M    = 10f
-    const val GPS_JUMP_THRESHOLD_M   = 50.0
+    const val GPS_ACCURACY_GATE_M    = 20f
+    const val GPS_JUMP_THRESHOLD_M   = 80.0
     const val LEADERBOARD_SYNC_MS    = 4000L
     const val GPS_SMOOTH_WINDOW      = 3
 }

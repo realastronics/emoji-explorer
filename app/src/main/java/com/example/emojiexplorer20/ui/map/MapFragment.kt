@@ -363,11 +363,11 @@ class MapFragment : Fragment() {
     }
 
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
-        // Darker, richer F1 feel — deep warm red tint
+        // Darker, higher contrast racetrack feel
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
-            0.85f, 0f,    0f,    0f, -15f,  // Red — slightly boosted
-            0f,    0.72f, 0f,    0f, -25f,  // Green — reduced for warmth
-            0f,    0f,    0.68f, 0f, -30f,  // Blue — reduced
+            0.75f, 0f,    0f,    0f, -25f,  // Red — boosted
+            0f,    0.58f, 0f,    0f, -40f,  // Green — suppressed more
+            0f,    0f,    0.52f, 0f, -45f,  // Blue — suppressed most
             0f,    0f,    0f,    1f,   0f   // Alpha
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)

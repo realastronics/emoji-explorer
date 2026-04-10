@@ -22,6 +22,9 @@ object GpsUtils {
     }
 
     // --- GPS smoothing: weighted average of last N readings ---
+
+    const val GPS_SMOOTH_WINDOW = 2  // was 3
+
     // Most recent reading gets highest weight
     private val locationHistory = ArrayDeque<Location>(SpawnConfig.GPS_SMOOTH_WINDOW)
 

@@ -1,16 +1,23 @@
 package com.example.emojiexplorer20.ui.ar
 
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.Surface
@@ -18,6 +25,7 @@ import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -29,27 +37,28 @@ import com.example.emojiexplorer20.data.model.SpawnConfig
 
 class ArCaptureFragment : Fragment() {
 
-    // UI
     private lateinit var textureView: TextureView
     private lateinit var tvEmojiOverlay: TextView
     private lateinit var btnCapture: Button
+    private lateinit var btnPhoto: Button
     private lateinit var tvArHint: TextView
     private lateinit var tvCaptureStatus: TextView
+    private lateinit var tvScanStatus: TextView
     private lateinit var tvArPoints: TextView
     private lateinit var tvSuccessEmoji: TextView
     private lateinit var tvSuccessPoints: TextView
     private lateinit var captureSuccessOverlay: LinearLayout
     private lateinit var reticleFill: View
+    private lateinit var scanLine: View
 
-    // Camera
     private var cameraDevice: CameraDevice? = null
     private var captureSession: CameraCaptureSession? = null
     private val cameraHandler = Handler(Looper.getMainLooper())
 
-    // Game state
     private var targetObject: EmojiObject? = null
     private var isCapturing = false
     private var captureAnimator: ValueAnimator? = null
+    private var scanAnimator: ObjectAnimator? = null
     private val handler = Handler(Looper.getMainLooper())
 
     var onCaptureSuccess: ((EmojiObject) -> Unit)? = null
@@ -66,57 +75,94 @@ class ArCaptureFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
+        inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_ar, container, false)
-    }
+    ): View? = inflater.inflate(R.layout.fragment_ar, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Bind views
         textureView = view.findViewById(R.id.arSceneView)
         tvEmojiOverlay = view.findViewById(R.id.tv_emoji_overlay)
         btnCapture = view.findViewById(R.id.btn_capture)
+        btnPhoto = view.findViewById(R.id.btn_photo)
         tvArHint = view.findViewById(R.id.tv_ar_hint)
         tvCaptureStatus = view.findViewById(R.id.tv_capture_status)
+        tvScanStatus = view.findViewById(R.id.tv_scan_status)
         tvArPoints = view.findViewById(R.id.tv_ar_points)
         tvSuccessEmoji = view.findViewById(R.id.tv_success_emoji)
         tvSuccessPoints = view.findViewById(R.id.tv_success_points)
         captureSuccessOverlay = view.findViewById(R.id.capture_success_overlay)
         reticleFill = view.findViewById(R.id.reticle_fill)
+        scanLine = view.findViewById(R.id.scan_line)
 
-        // Load target object
         val objectId = arguments?.getString("object_id")
         targetObject = SpawnConfig.SPAWN_POINTS.find { it.id == objectId }
+            ?: SpawnConfig.POWERUP_POINTS.find { it.id == objectId }
+
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
             tvSuccessEmoji.text = obj.emoji
             tvSuccessPoints.text = "+${obj.rarity.points} pts!"
             tvEmojiOverlay.text = obj.emoji
-            tvArHint.text = "Find the ${obj.emoji} — hold CAPTURE!"
+            tvArHint.text = "${obj.emoji} detected — hold CAPTURE!"
         }
 
-        // Start camera when texture is ready
+        startEmojiFloatAnimation()
+        startScanLineAnimation()
+        startScanStatusBlink()
+
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-            override fun onSurfaceTextureAvailable(
-                surface: SurfaceTexture, width: Int, height: Int
-            ) {
+            override fun onSurfaceTextureAvailable(s: SurfaceTexture, w: Int, h: Int) {
                 openCamera()
             }
-            override fun onSurfaceTextureSizeChanged(
-                surface: SurfaceTexture, width: Int, height: Int
-            ) {}
-            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture) = true
-            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+            override fun onSurfaceTextureSizeChanged(s: SurfaceTexture, w: Int, h: Int) {}
+            override fun onSurfaceTextureDestroyed(s: SurfaceTexture) = true
+            override fun onSurfaceTextureUpdated(s: SurfaceTexture) {}
         }
 
         setupCaptureButton()
 
+        btnPhoto.setOnClickListener { capturePhoto() }
+
         view.findViewById<Button>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
+        }
+    }
+
+    // Emoji gently bobs up and down
+    private fun startEmojiFloatAnimation() {
+        ObjectAnimator.ofFloat(tvEmojiOverlay, "translationY", -20f, 20f).apply {
+            duration = 1500
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    // Green scan line sweeps down the screen
+    private fun startScanLineAnimation() {
+        scanLine.visibility = View.VISIBLE
+        val screenHeight = resources.displayMetrics.heightPixels.toFloat()
+        scanAnimator = ObjectAnimator.ofFloat(
+            scanLine, "translationY", 0f, screenHeight
+        ).apply {
+            duration = 2000
+            repeatMode = ValueAnimator.RESTART
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = LinearInterpolator()
+            start()
+        }
+    }
+
+    // Blinking SCANNING text
+    private fun startScanStatusBlink() {
+        val blink = ObjectAnimator.ofFloat(tvScanStatus, "alpha", 1f, 0.2f).apply {
+            duration = 800
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            start()
         }
     }
 
@@ -124,8 +170,6 @@ class ArCaptureFragment : Fragment() {
     private fun openCamera() {
         val manager = requireContext()
             .getSystemService(Context.CAMERA_SERVICE) as CameraManager
-
-        // Find back-facing camera
         val cameraId = manager.cameraIdList.firstOrNull { id ->
             manager.getCameraCharacteristics(id)
                 .get(CameraCharacteristics.LENS_FACING) ==
@@ -138,19 +182,10 @@ class ArCaptureFragment : Fragment() {
                 startCameraPreview(camera)
             }
             override fun onDisconnected(camera: CameraDevice) {
-                camera.close()
-                cameraDevice = null
+                camera.close(); cameraDevice = null
             }
             override fun onError(camera: CameraDevice, error: Int) {
-                camera.close()
-                cameraDevice = null
-                handler.post {
-                    if (isAdded) Toast.makeText(
-                        requireContext(),
-                        "Camera error $error",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                camera.close(); cameraDevice = null
             }
         }, cameraHandler)
     }
@@ -159,46 +194,31 @@ class ArCaptureFragment : Fragment() {
         val surfaceTexture = textureView.surfaceTexture ?: return
         surfaceTexture.setDefaultBufferSize(1280, 720)
         val surface = Surface(surfaceTexture)
-
         try {
-            val previewRequestBuilder = camera
+            val previewRequest = camera
                 .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
                 .apply { addTarget(surface) }
 
-            // Use OutputConfiguration for Android 16 compatibility
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val outputConfig = android.hardware.camera2.params.OutputConfiguration(surface)
                 val sessionConfig = android.hardware.camera2.params.SessionConfiguration(
                     android.hardware.camera2.params.SessionConfiguration.SESSION_REGULAR,
                     listOf(outputConfig),
-                    { runnable -> cameraHandler.post(runnable) },
+                    { r -> cameraHandler.post(r) },
                     object : CameraCaptureSession.StateCallback() {
                         override fun onConfigured(session: CameraCaptureSession) {
                             captureSession = session
                             try {
                                 session.setRepeatingRequest(
-                                    previewRequestBuilder.build(), null, cameraHandler
+                                    previewRequest.build(), null, cameraHandler
                                 )
-                            } catch (e: Exception) {
-                                handler.post {
-                                    if (isAdded) Toast.makeText(
-                                        requireContext(), "Preview failed", Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
+                            } catch (e: Exception) { /* ignore */ }
                         }
-                        override fun onConfigureFailed(session: CameraCaptureSession) {
-                            handler.post {
-                                if (isAdded) Toast.makeText(
-                                    requireContext(), "Camera config failed", Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
+                        override fun onConfigureFailed(session: CameraCaptureSession) {}
                     }
                 )
                 camera.createCaptureSession(sessionConfig)
             } else {
-                // Fallback for older Android versions
                 @Suppress("DEPRECATION")
                 camera.createCaptureSession(
                     listOf(surface),
@@ -206,10 +226,10 @@ class ArCaptureFragment : Fragment() {
                         override fun onConfigured(session: CameraCaptureSession) {
                             captureSession = session
                             session.setRepeatingRequest(
-                                previewRequestBuilder.build(), null, cameraHandler
+                                previewRequest.build(), null, cameraHandler
                             )
                         }
-                        override fun onConfigureFailed(session: CameraCaptureSession) {}
+                        override fun onConfigureFailed(s: CameraCaptureSession) {}
                     },
                     cameraHandler
                 )
@@ -217,11 +237,12 @@ class ArCaptureFragment : Fragment() {
         } catch (e: Exception) {
             handler.post {
                 if (isAdded) Toast.makeText(
-                    requireContext(), "Camera error: ${e.message}", Toast.LENGTH_SHORT
+                    requireContext(), "Camera error", Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
+
     private fun setupCaptureButton() {
         btnCapture.setOnTouchListener { _, event ->
             when (event.action) {
@@ -237,6 +258,10 @@ class ArCaptureFragment : Fragment() {
         if (isCapturing) return
         isCapturing = true
         tvCaptureStatus.text = "Hold steady..."
+
+        // Light haptic buzz on start
+        vibrate(50)
+
         captureAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = SpawnConfig.CAPTURE_HOLD_MS
             interpolator = AccelerateDecelerateInterpolator()
@@ -244,6 +269,9 @@ class ArCaptureFragment : Fragment() {
                 val p = anim.animatedValue as Float
                 reticleFill.scaleX = p
                 reticleFill.scaleY = p
+                // Progress haptic ticks
+                if (p > 0.5f && p < 0.52f) vibrate(30)
+                if (p > 0.8f && p < 0.82f) vibrate(30)
             }
             start()
         }
@@ -268,22 +296,106 @@ class ArCaptureFragment : Fragment() {
         handler.removeCallbacksAndMessages(null)
         val obj = targetObject ?: return
         obj.isCaptured = true
+
+        // Strong success haptic pattern
+        vibrate(longArrayOf(0, 100, 50, 200))
+
         captureSuccessOverlay.visibility = View.VISIBLE
         onCaptureSuccess?.invoke(obj)
+
         handler.postDelayed({
             if (isAdded) parentFragmentManager.popBackStack()
-        }, 2000L)
+        }, 2500L)
+    }
+
+    // Capture photo to gallery
+    private fun capturePhoto() {
+        val bitmap = textureView.bitmap ?: run {
+            Toast.makeText(requireContext(), "Camera not ready", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val filename = "EmojiExplorer_${System.currentTimeMillis()}.jpg"
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/EmojiExplorer")
+                }
+            }
+            val uri = requireContext().contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
+            )
+            uri?.let { u ->
+                requireContext().contentResolver.openOutputStream(u)?.use { out ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, out)
+                }
+                vibrate(60)
+                Toast.makeText(requireContext(), "Photo saved!", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Could not save photo", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun vibrate(durationMs: Long) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = requireContext()
+                    .getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vm.defaultVibrator.vibrate(
+                    VibrationEffect.createOneShot(
+                        durationMs, VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val v = requireContext()
+                    .getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    v.vibrate(
+                        VibrationEffect.createOneShot(
+                            durationMs, VibrationEffect.DEFAULT_AMPLITUDE
+                        )
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    v.vibrate(durationMs)
+                }
+            }
+        } catch (e: Exception) { /* ignore if vibrator unavailable */ }
+    }
+
+    private fun vibrate(pattern: LongArray) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = requireContext()
+                    .getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vm.defaultVibrator.vibrate(
+                    VibrationEffect.createWaveform(pattern, -1)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val v = requireContext()
+                    .getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                } else {
+                    @Suppress("DEPRECATION")
+                    v.vibrate(pattern, -1)
+                }
+            }
+        } catch (e: Exception) { /* ignore */ }
     }
 
     private fun closeCamera() {
-        captureSession?.close()
-        captureSession = null
-        cameraDevice?.close()
-        cameraDevice = null
+        captureSession?.close(); captureSession = null
+        cameraDevice?.close(); cameraDevice = null
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        scanAnimator?.cancel()
         captureAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
         closeCamera()

@@ -6,9 +6,15 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Camera (required for AR) -->
+    <!-- Vibration Permission -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- Camera and Gallery (required for AR) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
+
     <!-- Internet (Firebase sync) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
