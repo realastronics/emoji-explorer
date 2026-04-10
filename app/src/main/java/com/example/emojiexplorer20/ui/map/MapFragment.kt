@@ -345,7 +345,19 @@ class MapFragment : Fragment() {
         )
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
-        myLocationOverlay.setPersonIcon(createPlayerSpriteBitmap())
+        // Replace the createPlayerSpriteBitmap() call with:
+        val options = android.graphics.BitmapFactory.Options().apply {
+            outWidth = 80
+            outHeight = 80
+        }
+        val spriteBitmap = android.graphics.BitmapFactory.decodeResource(
+            resources, R.drawable.ic_player_custom
+        )?.let {
+            android.graphics.Bitmap.createScaledBitmap(it, 80, 80, true)
+        } ?: createPlayerSpriteBitmap() // fallback to programmatic if image not found
+
+        myLocationOverlay.setPersonIcon(spriteBitmap)
+        myLocationOverlay.setDirectionIcon(spriteBitmap)
         myLocationOverlay.setDirectionIcon(createPlayerSpriteBitmap())
         mapView.overlays.add(myLocationOverlay)
     }
@@ -426,6 +438,47 @@ class MapFragment : Fragment() {
     }
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
+        if (obj.rarity == EmojiObject.Rarity.ULTRA) {
+            try {
+                val ultraBitmap = android.graphics.BitmapFactory.decodeResource(
+                    resources, R.drawable.emoji_ultra_rare
+                )
+                if (ultraBitmap != null) {
+                    // Step 1: Resize (smaller than before)
+                    val size = 80  // reduced from 115
+                    val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(
+                        ultraBitmap, size, size, true
+                    )
+
+                    // Step 2: Create circular bitmap
+                    val output = android.graphics.Bitmap.createBitmap(
+                        size, size, android.graphics.Bitmap.Config.ARGB_8888
+                    )
+                    val canvas = android.graphics.Canvas(output)
+                    val paint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                    }
+                    val rect = android.graphics.Rect(0, 0, size, size)
+                    val rectF = android.graphics.RectF(rect)
+
+                    // Draw circle
+                    canvas.drawARGB(0, 0, 0, 0)
+                    canvas.drawCircle(
+                        size / 2f,
+                        size / 2f,
+                        size / 2f,
+                        paint
+                    )
+
+                    // Apply mask
+                    paint.xfermode = android.graphics.PorterDuffXfermode(
+                        android.graphics.PorterDuff.Mode.SRC_IN
+                    )
+                    canvas.drawBitmap(scaledBitmap, rect, rect, paint)
+                    return android.graphics.drawable.BitmapDrawable(resources, output)
+                }
+            } catch (e: Exception) { /* fall through to default */ }
+        }
         val size = when (obj.rarity) {
             EmojiObject.Rarity.COMMON   -> 80
             EmojiObject.Rarity.UNCOMMON -> 90

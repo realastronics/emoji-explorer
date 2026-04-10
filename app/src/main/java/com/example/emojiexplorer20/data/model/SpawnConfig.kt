@@ -94,8 +94,8 @@ object SpawnConfig {
 
     val ALL_OBJECTS get() = SPAWN_POINTS + POWERUP_POINTS
 
-    const val PROXIMITY_RADIUS_M     = 20.0
-    const val AR_TRIGGER_RADIUS_M    = 25.0
+    const val PROXIMITY_RADIUS_M     = 20.0   // outer ring — hint shows
+    const val AR_TRIGGER_RADIUS_M    = 15.0   // inner ring — CAPTURE button shows
     const val CAPTURE_HOLD_MS        = 1800L
     const val CAPTURE_HOLD_SLOW_MS   = 3600L
     const val SHRINK_ZONE_RADIUS_M   = 3.0
