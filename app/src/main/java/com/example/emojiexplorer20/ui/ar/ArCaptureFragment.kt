@@ -160,32 +160,68 @@ class ArCaptureFragment : Fragment() {
         surfaceTexture.setDefaultBufferSize(1280, 720)
         val surface = Surface(surfaceTexture)
 
-        val previewRequest = camera
-            .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-            .apply { addTarget(surface) }
-            .build()
+        try {
+            val previewRequestBuilder = camera
+                .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                .apply { addTarget(surface) }
 
-        camera.createCaptureSession(
-            listOf(surface),
-            object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(session: CameraCaptureSession) {
-                    captureSession = session
-                    session.setRepeatingRequest(previewRequest, null, cameraHandler)
-                }
-                override fun onConfigureFailed(session: CameraCaptureSession) {
-                    handler.post {
-                        if (isAdded) Toast.makeText(
-                            requireContext(),
-                            "Camera preview failed",
-                            Toast.LENGTH_SHORT
-                        ).show()
+            // Use OutputConfiguration for Android 16 compatibility
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                val outputConfig = android.hardware.camera2.params.OutputConfiguration(surface)
+                val sessionConfig = android.hardware.camera2.params.SessionConfiguration(
+                    android.hardware.camera2.params.SessionConfiguration.SESSION_REGULAR,
+                    listOf(outputConfig),
+                    { runnable -> cameraHandler.post(runnable) },
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            captureSession = session
+                            try {
+                                session.setRepeatingRequest(
+                                    previewRequestBuilder.build(), null, cameraHandler
+                                )
+                            } catch (e: Exception) {
+                                handler.post {
+                                    if (isAdded) Toast.makeText(
+                                        requireContext(), "Preview failed", Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                        override fun onConfigureFailed(session: CameraCaptureSession) {
+                            handler.post {
+                                if (isAdded) Toast.makeText(
+                                    requireContext(), "Camera config failed", Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
-                }
-            },
-            cameraHandler
-        )
+                )
+                camera.createCaptureSession(sessionConfig)
+            } else {
+                // Fallback for older Android versions
+                @Suppress("DEPRECATION")
+                camera.createCaptureSession(
+                    listOf(surface),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            captureSession = session
+                            session.setRepeatingRequest(
+                                previewRequestBuilder.build(), null, cameraHandler
+                            )
+                        }
+                        override fun onConfigureFailed(session: CameraCaptureSession) {}
+                    },
+                    cameraHandler
+                )
+            }
+        } catch (e: Exception) {
+            handler.post {
+                if (isAdded) Toast.makeText(
+                    requireContext(), "Camera error: ${e.message}", Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
-
     private fun setupCaptureButton() {
         btnCapture.setOnTouchListener { _, event ->
             when (event.action) {
