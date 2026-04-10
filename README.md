@@ -13,8 +13,8 @@ Players move around a real-world area to discover and capture virtual objects an
 6. Gain points and continue  
 
 ### Features
-- Location based object spawning  
-- AR-based interaction  
+- Location based capturables  
+- AR-based interaction 
 - Team-based scoring  
 - Power-ups and sabotage mechanics  
 - Leaderboard sync  
@@ -22,20 +22,12 @@ Players move around a real-world area to discover and capture virtual objects an
 ### Tech Stack
 - Android Studio
 - Kotlin  
-- ARCore / Unity (TBD)  
+- ARCore
 - Firebase (leaderboard and sync)  
 
 ### Status
-MVP in development
-
-Planned:
-- Map and location tracking  
-- AR object rendering  
-- Capture system  
-- Scoring  
-- Leaderboard  
-- Power-ups  
+Finished Deelopement, to be used by over 50 people.
 
 ### Environment
 - BML Munjal University campus  
-- Session duration: ~30-45 minutes  
+- Session duration: ~30 minutes  
