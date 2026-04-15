@@ -363,9 +363,9 @@ class MapFragment : Fragment() {
 
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
-            0.16f, 0f,    0f,    0f, -40f,  // Red — almost gone
-            0f,    0.13f, 0f,    0f, -45f,  // Green — crushed
-            0f,    0f,    0.65f, 0f, -35f,  // Blue — reduced + darkened
+            0.55f, 0f,    0f,    0f,  40f,  // Red — lifted (brings warmth into pastel)
+            0f,    0.45f, 0f,    0f,  35f,  // Green — softened (keeps it clean, not neon)
+            0f,    0f,    1.10f, 0f,  50f,  // Blue — dominant + lifted (lavender tone)
             0f,    0f,    0f,    1f,   0f   // Alpha
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)

@@ -9,14 +9,14 @@
         android:layout_width="match_parent"
         android:layout_height="6dp"
         android:layout_gravity="top"
-        android:background="#E8002D" />
+        android:background="#C4B9EB" />
 
     <!-- F1 red accent bar bottom -->
     <View
         android:layout_width="match_parent"
         android:layout_height="6dp"
         android:layout_gravity="bottom"
-        android:background="#E8002D" />
+        android:background="#C4B9EB" />
 
     <!-- Centre content -->
     <LinearLayout
@@ -50,7 +50,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="RACE TO CAPTURE"
-            android:textColor="#E8002D"
+            android:textColor="#E1DDF0"
             android:textSize="14sp"
             android:letterSpacing="0.3"
             android:layout_marginBottom="48dp"/>

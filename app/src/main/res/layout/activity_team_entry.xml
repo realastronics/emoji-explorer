@@ -8,13 +8,13 @@
         android:layout_width="match_parent"
         android:layout_height="6dp"
         android:layout_gravity="top"
-        android:background="#E8002D" />
+        android:background="#E1DDF0" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="6dp"
         android:layout_gravity="bottom"
-        android:background="#E8002D" />
+        android:background="#E1DDF0" />
 
     <!-- Diagonal speed lines background -->
     <LinearLayout
@@ -29,9 +29,9 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="EMOJI EXPLORER"
-            android:textColor="#E8002D"
-            android:textSize="13sp"
-            android:letterSpacing="0.4"
+            android:textColor="#6A65C8"
+            android:textSize="22sp"
+            android:letterSpacing="0.2"
             android:layout_marginBottom="4dp"/>
 
         <TextView
@@ -62,7 +62,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="TEAM NAME"
-                    android:textColor="#E8002D"
+                    android:textColor="#8D86E3"
                     android:textSize="11sp"
                     android:letterSpacing="0.3"
                     android:layout_marginBottom="8dp"/>
@@ -103,7 +103,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="DRIVER NUMBER (1-99)"
-                    android:textColor="#E8002D"
+                    android:textColor="#8D86E3"
                     android:textSize="11sp"
                     android:letterSpacing="0.3"
                     android:layout_marginBottom="8dp"/>

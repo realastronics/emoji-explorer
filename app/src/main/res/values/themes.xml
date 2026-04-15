@@ -1,13 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.EmojiExplorer20" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:statusBarColor">#E8002D</item>
-        <item name="android:navigationBarColor">#0A0A0A</item>
+    <style name="Theme.EmojiExplorer20" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- System bars -->
+        <item name="android:statusBarColor">#0C0424</item>
+        <item name="android:navigationBarColor">#0C0424</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
-        <item name="colorPrimary">#E8002D</item>
-        <item name="colorPrimaryVariant">#B8001F</item>
+        <!-- Core theme colors (NO RED anymore) -->
+        <item name="colorPrimary">#0A0A0A</item>
+        <item name="colorPrimaryVariant">#0A0A0A</item>
         <item name="colorOnPrimary">#FFFFFF</item>
+        <!-- Surface / background -->
         <item name="colorSurface">#0A0A0A</item>
-        <item name="android:windowBackground">#0A0A0A</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+        <!-- Optional subtle purple accent (matches your map vibe) -->
+        <item name="colorSecondary">#AF9FE0</item>
+        <item name="colorSecondaryVariant">#9279BA</item>
+
     </style>
 </resources>

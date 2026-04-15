@@ -124,7 +124,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:text="⬆"
-                android:textColor="#E8002D"
+                android:textColor="#FFFFFF"
                 android:textSize="20sp"/>
         </FrameLayout>
 
@@ -158,7 +158,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Emoji Explorer"
-            android:textColor="#E8002D"
+            android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold"
             android:letterSpacing="0.05"/>
@@ -186,7 +186,7 @@
             android:paddingTop="5dp"
             android:paddingBottom="5dp"
             android:text="0 pts"
-            android:textColor="#E8002D"
+            android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold"/>
 
