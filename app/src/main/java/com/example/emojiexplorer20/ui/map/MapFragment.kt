@@ -166,7 +166,7 @@ class MapFragment : Fragment() {
 
             Handler(Looper.getMainLooper()).postDelayed({
                 imageView.visibility = View.GONE
-            }, 2500)
+            }, 2700)
         }
 
         // Capture button
