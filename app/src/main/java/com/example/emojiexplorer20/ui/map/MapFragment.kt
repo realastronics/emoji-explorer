@@ -15,7 +15,6 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.emojiexplorer20.R
@@ -363,11 +362,10 @@ class MapFragment : Fragment() {
     }
 
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
-        // Darker, higher contrast racetrack feel
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
-            0.75f, 0f,    0f,    0f, -25f,  // Red — boosted
-            0f,    0.58f, 0f,    0f, -40f,  // Green — suppressed more
-            0f,    0f,    0.52f, 0f, -45f,  // Blue — suppressed most
+            0.16f, 0f,    0f,    0f, -40f,  // Red — almost gone
+            0f,    0.13f, 0f,    0f, -45f,  // Green — crushed
+            0f,    0f,    0.65f, 0f, -35f,  // Blue — reduced + darkened
             0f,    0f,    0f,    1f,   0f   // Alpha
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)
@@ -438,10 +436,10 @@ class MapFragment : Fragment() {
     }
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
-        if (obj.rarity == EmojiObject.Rarity.ULTRA) {
+        if (obj.rarity == EmojiObject.Rarity.COMMON) {
             try {
                 val ultraBitmap = android.graphics.BitmapFactory.decodeResource(
-                    resources, R.drawable.emoji_ultra_rare
+                    resources, R.drawable.blue_can_redbull
                 )
                 if (ultraBitmap != null) {
                     // Step 1: Resize (smaller than before)

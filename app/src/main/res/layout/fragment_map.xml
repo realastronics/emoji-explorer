@@ -297,47 +297,6 @@
         android:paddingTop="16dp"
         android:paddingBottom="24dp">
 
-        <!-- Rarity legend row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="● Common"
-                android:textColor="#888780"
-                android:textSize="11sp"
-                android:paddingEnd="10dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="● Uncommon"
-                android:textColor="#378ADD"
-                android:textSize="11sp"
-                android:paddingEnd="10dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="● Rare"
-                android:textColor="#7F77DD"
-                android:textSize="11sp"
-                android:paddingEnd="10dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="● Ultra"
-                android:textColor="#EF9F27"
-                android:textSize="11sp"/>
-
-        </LinearLayout>
-
 
         <TextView
             android:id="@+id/tv_nearest_hint"
