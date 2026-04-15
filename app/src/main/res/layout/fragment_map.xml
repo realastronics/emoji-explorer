@@ -324,9 +324,9 @@
             android:id="@+id/btn_leaderboard"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:backgroundTint="#222222"
+            android:backgroundTint="#D8D8F0"
             android:text="Leaderboard"
-            android:textColor="#AAAAAA"
+            android:textColor="#000000"
             android:textSize="13sp" />
 
     </LinearLayout>

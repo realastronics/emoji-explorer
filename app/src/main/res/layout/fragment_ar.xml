@@ -28,14 +28,13 @@
         android:background="#00FF88"/>
 
     <!-- Emoji floating in AR — large and visible -->
-    <TextView
-        android:id="@+id/tv_emoji_overlay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <ImageView
+        android:id="@+id/iv_can_overlay"
+        android:layout_width="80dp"
+        android:layout_height="139dp"
         android:layout_gravity="center"
         android:layout_marginBottom="80dp"
-        android:text="🔥"
-        android:textSize="96sp"
+        android:scaleType="fitCenter"
         android:elevation="8dp"/>
 
     <!-- Top bar -->
@@ -80,61 +79,6 @@
     </LinearLayout>
 
     <!-- AR corner frame brackets -->
-    <FrameLayout
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="60dp">
-
-        <!-- Top-left corner -->
-        <View
-            android:layout_width="30dp"
-            android:layout_height="3dp"
-            android:layout_gravity="top|start"
-            android:background="#00FF88"/>
-        <View
-            android:layout_width="3dp"
-            android:layout_height="30dp"
-            android:layout_gravity="top|start"
-            android:background="#00FF88"/>
-
-        <!-- Top-right corner -->
-        <View
-            android:layout_width="30dp"
-            android:layout_height="3dp"
-            android:layout_gravity="top|end"
-            android:background="#00FF88"/>
-        <View
-            android:layout_width="3dp"
-            android:layout_height="30dp"
-            android:layout_gravity="top|end"
-            android:background="#00FF88"/>
-
-        <!-- Bottom-left corner -->
-        <View
-            android:layout_width="30dp"
-            android:layout_height="3dp"
-            android:layout_gravity="bottom|start"
-            android:background="#00FF88"/>
-        <View
-            android:layout_width="3dp"
-            android:layout_height="30dp"
-            android:layout_gravity="bottom|start"
-            android:background="#00FF88"/>
-
-        <!-- Bottom-right corner -->
-        <View
-            android:layout_width="30dp"
-            android:layout_height="3dp"
-            android:layout_gravity="bottom|end"
-            android:background="#00FF88"/>
-        <View
-            android:layout_width="3dp"
-            android:layout_height="30dp"
-            android:layout_gravity="bottom|end"
-            android:background="#00FF88"/>
-
-    </FrameLayout>
 
     <!-- Reticle -->
     <FrameLayout
@@ -153,9 +97,71 @@
             android:background="@drawable/reticle_fill"
             android:scaleX="0"
             android:scaleY="0"/>
+
+        <FrameLayout
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="60dp">
+
+            <!-- Top-left corner -->
+            <View
+                android:layout_width="30dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|start"
+                android:background="#00FF88" />
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="30dp"
+                android:layout_gravity="top|start"
+                android:background="#00FF88" />
+
+            <!-- Top-right corner -->
+            <View
+                android:layout_width="30dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|end"
+                android:background="#00FF88" />
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="30dp"
+                android:layout_gravity="top|end"
+                android:background="#00FF88" />
+
+            <!-- Bottom-left corner -->
+            <View
+                android:layout_width="30dp"
+                android:layout_height="3dp"
+                android:layout_gravity="bottom|start"
+                android:background="#00FF88" />
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="30dp"
+                android:layout_gravity="bottom|start"
+                android:background="#00FF88" />
+
+            <!-- Bottom-right corner -->
+            <View
+                android:layout_width="30dp"
+                android:layout_height="3dp"
+                android:layout_gravity="bottom|end"
+                android:background="#00FF88" />
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="30dp"
+                android:layout_gravity="bottom|end"
+                android:background="#00FF88" />
+
+        </FrameLayout>
     </FrameLayout>
 
     <!-- Bottom capture UI -->
+
+    <!-- Success overlay -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -172,7 +178,7 @@
             android:layout_marginBottom="8dp"
             android:text="Hold CAPTURE to catch it!"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"/>
+            android:textSize="14sp" />
 
         <!-- Scan status indicator -->
         <TextView
@@ -180,11 +186,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2"
             android:text="● SCANNING"
             android:textColor="#00FF88"
-            android:textSize="11sp"
-            android:letterSpacing="0.2"
-            android:fontFamily="monospace"/>
+            android:textSize="11sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -197,11 +203,11 @@
                 android:layout_width="180dp"
                 android:layout_height="56dp"
                 android:layout_marginEnd="12dp"
-                android:backgroundTint="#130F38"
+                android:backgroundTint="#48FC38"
                 android:text="CAPTURE"
-                android:textColor="#FFFFFF"
+                android:textColor="#000000"
                 android:textSize="16sp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_photo"
@@ -209,13 +215,12 @@
                 android:layout_height="56dp"
                 android:backgroundTint="#222222"
                 android:text="📷"
-                android:textSize="20sp"/>
+                android:textSize="20sp" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Success overlay -->
     <LinearLayout
         android:id="@+id/capture_success_overlay"
         android:layout_width="match_parent"
@@ -225,12 +230,13 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/tv_success_emoji"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🎉"
-            android:textSize="96sp"/>
+        <!-- Inside capture_success_overlay LinearLayout, replace tv_success_emoji with: -->
+        <ImageView
+            android:id="@+id/iv_success_can"
+            android:layout_width="80dp"
+            android:layout_height="139dp"
+            android:scaleType="fitCenter"
+            android:layout_marginBottom="8dp"/>
 
         <TextView
             android:id="@+id/tv_success_points"

@@ -363,10 +363,10 @@ class MapFragment : Fragment() {
 
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
-            0.55f, 0f,    0f,    0f,  40f,  // Red — lifted (brings warmth into pastel)
-            0f,    0.45f, 0f,    0f,  35f,  // Green — softened (keeps it clean, not neon)
-            0f,    0f,    1.10f, 0f,  50f,  // Blue — dominant + lifted (lavender tone)
-            0f,    0f,    0f,    1f,   0f   // Alpha
+            0.25f, 0f,    0f,    0f,  10f,  // Red ↓ darker
+            0f,    0.28f, 0f,    0f,  10f,  // Green ↓ muted
+            0f,    0f,    0.40f, 0f,  25f,  // Blue ↑ slightly (cool tone)
+            0f,    0f,    0f,    1f,   0f   // Alpha unchanged
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)
     }
@@ -421,13 +421,23 @@ class MapFragment : Fragment() {
     // --- Spawn markers ---
     private fun setupSpawnMarkers() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
-            // Use per-team capture tracking
             if (obj.isCapturedByTeam(teamId)) return@forEach
             val marker = Marker(mapView)
             marker.position = GeoPoint(obj.lat, obj.lng)
-            marker.title = "${obj.emoji} ${obj.rarity.label}"
+            marker.title = "Red Bull ${obj.rarity.label}"
             marker.snippet = "${obj.rarity.points} pts"
-            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            marker.icon = createEmojiMarker(obj)
+            mapView.overlays.add(marker)
+            spawnMarkers.add(marker)
+        }
+        SpawnConfig.POWERUP_POINTS.forEach { obj ->
+            if (obj.isCapturedByTeam(teamId)) return@forEach
+            val marker = Marker(mapView)
+            marker.position = GeoPoint(obj.lat, obj.lng)
+            marker.title = "Power-Up Can"
+            marker.snippet = "Capture for a weapon!"
+            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             marker.icon = createEmojiMarker(obj)
             mapView.overlays.add(marker)
             spawnMarkers.add(marker)
@@ -435,77 +445,54 @@ class MapFragment : Fragment() {
         mapView.invalidate()
     }
 
+    private fun getCanDrawableRes(canColor: String): Int = when (canColor) {
+        "blue"   -> R.drawable.blue_can_redbull
+        "yellow" -> R.drawable.yellow_can_redbull
+        "red"    -> R.drawable.red_can_redbull
+        "pink"   -> R.drawable.pink_can_redbull
+        else     -> R.drawable.blue_can_redbull
+    }
+
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
-        if (obj.rarity == EmojiObject.Rarity.COMMON) {
-            try {
-                val ultraBitmap = android.graphics.BitmapFactory.decodeResource(
-                    resources, R.drawable.blue_can_redbull
+        // Can proportions: real 250ml can is ~66mm wide x 115mm tall = ~1:1.74 ratio
+        // On screen: width varies by rarity, height = width * 1.74
+        val canWidth = when (obj.rarity) {
+            EmojiObject.Rarity.COMMON   -> 110
+            EmojiObject.Rarity.UNCOMMON -> 110
+            EmojiObject.Rarity.RARE     -> 110
+            EmojiObject.Rarity.ULTRA    -> 110
+        }
+        val canHeight = (canWidth * 1.00f).toInt()
+
+        return try {
+            val drawableRes = getCanDrawableRes(obj.emoji)
+            val sourceBitmap = android.graphics.BitmapFactory.decodeResource(
+                resources, drawableRes
+            ) ?: throw Exception("null bitmap")
+
+            android.graphics.drawable.BitmapDrawable(
+                resources,
+                android.graphics.Bitmap.createScaledBitmap(
+                    sourceBitmap, canWidth, canHeight, false
                 )
-                if (ultraBitmap != null) {
-                    // Step 1: Resize (smaller than before)
-                    val size = 80  // reduced from 115
-                    val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(
-                        ultraBitmap, size, size, true
-                    )
-
-                    // Step 2: Create circular bitmap
-                    val output = android.graphics.Bitmap.createBitmap(
-                        size, size, android.graphics.Bitmap.Config.ARGB_8888
-                    )
-                    val canvas = android.graphics.Canvas(output)
-                    val paint = android.graphics.Paint().apply {
-                        isAntiAlias = true
-                    }
-                    val rect = android.graphics.Rect(0, 0, size, size)
-                    val rectF = android.graphics.RectF(rect)
-
-                    // Draw circle
-                    canvas.drawARGB(0, 0, 0, 0)
-                    canvas.drawCircle(
-                        size / 2f,
-                        size / 2f,
-                        size / 2f,
-                        paint
-                    )
-
-                    // Apply mask
-                    paint.xfermode = android.graphics.PorterDuffXfermode(
-                        android.graphics.PorterDuff.Mode.SRC_IN
-                    )
-                    canvas.drawBitmap(scaledBitmap, rect, rect, paint)
-                    return android.graphics.drawable.BitmapDrawable(resources, output)
-                }
-            } catch (e: Exception) { /* fall through to default */ }
+            )
+        } catch (e: Exception) {
+            // Fallback — plain colored circle if image fails to load
+            val fallback = android.graphics.Bitmap.createBitmap(
+                canWidth, canWidth, android.graphics.Bitmap.Config.ARGB_8888
+            )
+            val canvas = android.graphics.Canvas(fallback)
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            paint.color = when (obj.emoji) {
+                "blue"   -> android.graphics.Color.parseColor("#378ADD")
+                "yellow" -> android.graphics.Color.parseColor("#EF9F27")
+                "red"    -> android.graphics.Color.parseColor("#E8002D")
+                "pink"   -> android.graphics.Color.parseColor("#D4537E")
+                else     -> android.graphics.Color.GRAY
+            }
+            canvas.drawCircle(canWidth / 2f, canWidth / 2f, canWidth / 2f, paint)
+            android.graphics.drawable.BitmapDrawable(resources, fallback)
         }
-        val size = when (obj.rarity) {
-            EmojiObject.Rarity.COMMON   -> 80
-            EmojiObject.Rarity.UNCOMMON -> 90
-            EmojiObject.Rarity.RARE     -> 100
-            EmojiObject.Rarity.ULTRA    -> 115
-        }
-        val bgColor = when (obj.rarity) {
-            EmojiObject.Rarity.COMMON   -> android.graphics.Color.parseColor("#AA888780")
-            EmojiObject.Rarity.UNCOMMON -> android.graphics.Color.parseColor("#AA378ADD")
-            EmojiObject.Rarity.RARE     -> android.graphics.Color.parseColor("#AA7F77DD")
-            EmojiObject.Rarity.ULTRA    -> android.graphics.Color.parseColor("#AAEF9F27")
-        }
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            size, size, android.graphics.Bitmap.Config.ARGB_8888
-        )
-        val canvas = android.graphics.Canvas(bitmap)
-        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        paint.color = bgColor
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-        paint.color = android.graphics.Color.WHITE
-        paint.style = android.graphics.Paint.Style.STROKE
-        paint.strokeWidth = 4f
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 2, paint)
-        val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        textPaint.textSize = size * 0.45f
-        textPaint.textAlign = android.graphics.Paint.Align.CENTER
-        val textY = size / 2f - (textPaint.descent() + textPaint.ascent()) / 2
-        canvas.drawText(obj.emoji, size / 2f, textY, textPaint)
-        return android.graphics.drawable.BitmapDrawable(resources, bitmap)
     }
 
     // --- Location updates ---

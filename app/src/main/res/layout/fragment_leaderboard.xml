@@ -129,9 +129,9 @@
                 android:id="@+id/btn_close_leaderboard"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:backgroundTint="#08081C"
+                android:backgroundTint="#B8ADFF"
                 android:text="Back to Race"
-                android:textColor="#AAAAAA"/>
+                android:textColor="#000000"/>
 
         </LinearLayout>
 

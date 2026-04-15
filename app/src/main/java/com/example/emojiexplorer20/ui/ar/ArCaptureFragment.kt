@@ -38,14 +38,13 @@ import com.example.emojiexplorer20.data.model.SpawnConfig
 class ArCaptureFragment : Fragment() {
 
     private lateinit var textureView: TextureView
-    private lateinit var tvEmojiOverlay: TextView
+    private lateinit var ivCanOverlay: android.widget.ImageView
     private lateinit var btnCapture: Button
     private lateinit var btnPhoto: Button
     private lateinit var tvArHint: TextView
     private lateinit var tvCaptureStatus: TextView
     private lateinit var tvScanStatus: TextView
     private lateinit var tvArPoints: TextView
-    private lateinit var tvSuccessEmoji: TextView
     private lateinit var tvSuccessPoints: TextView
     private lateinit var captureSuccessOverlay: LinearLayout
     private lateinit var reticleFill: View
@@ -83,14 +82,13 @@ class ArCaptureFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         textureView = view.findViewById(R.id.arSceneView)
-        tvEmojiOverlay = view.findViewById(R.id.tv_emoji_overlay)
+        ivCanOverlay = view.findViewById(R.id.iv_can_overlay)
         btnCapture = view.findViewById(R.id.btn_capture)
         btnPhoto = view.findViewById(R.id.btn_photo)
         tvArHint = view.findViewById(R.id.tv_ar_hint)
         tvCaptureStatus = view.findViewById(R.id.tv_capture_status)
         tvScanStatus = view.findViewById(R.id.tv_scan_status)
         tvArPoints = view.findViewById(R.id.tv_ar_points)
-        tvSuccessEmoji = view.findViewById(R.id.tv_success_emoji)
         tvSuccessPoints = view.findViewById(R.id.tv_success_points)
         captureSuccessOverlay = view.findViewById(R.id.capture_success_overlay)
         reticleFill = view.findViewById(R.id.reticle_fill)
@@ -102,10 +100,22 @@ class ArCaptureFragment : Fragment() {
 
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
-            tvSuccessEmoji.text = obj.emoji
             tvSuccessPoints.text = "+${obj.rarity.points} pts!"
-            tvEmojiOverlay.text = obj.emoji
-            tvArHint.text = "${obj.emoji} detected — hold CAPTURE!"
+            tvArHint.text = "Red Bull ${obj.rarity.label} — hold CAPTURE!"
+
+            // Set can image
+            val drawableRes = when (obj.emoji) {
+                "blue"   -> R.drawable.blue_can_redbull
+                "yellow" -> R.drawable.yellow_can_redbull
+                "red"    -> R.drawable.red_can_redbull
+                "pink"   -> R.drawable.pink_can_redbull
+                else     -> R.drawable.blue_can_redbull
+            }
+            ivCanOverlay.setImageResource(drawableRes)
+
+            // Success overlay — show can image too
+            view.findViewById<android.widget.ImageView?>(R.id.iv_success_can)
+                ?.setImageResource(drawableRes)
         }
 
         startEmojiFloatAnimation()
@@ -132,11 +142,11 @@ class ArCaptureFragment : Fragment() {
 
     // Emoji gently bobs up and down
     private fun startEmojiFloatAnimation() {
-        ObjectAnimator.ofFloat(tvEmojiOverlay, "translationY", -20f, 20f).apply {
+        android.animation.ObjectAnimator.ofFloat(ivCanOverlay, "translationY", -20f, 20f).apply {
             duration = 1500
-            repeatMode = ValueAnimator.REVERSE
-            repeatCount = ValueAnimator.INFINITE
-            interpolator = AccelerateDecelerateInterpolator()
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
             start()
         }
     }
