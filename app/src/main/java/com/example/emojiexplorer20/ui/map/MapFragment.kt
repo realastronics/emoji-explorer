@@ -15,6 +15,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ImageView
+import android.graphics.drawable.AnimationDrawable
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.emojiexplorer20.R
@@ -44,6 +46,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 class MapFragment : Fragment() {
 
     private lateinit var mapView: MapView
+    private var introAnim: ImageView? = null
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
     private lateinit var myLocationOverlay: MyLocationNewOverlay
@@ -123,6 +126,7 @@ class MapFragment : Fragment() {
 
         // Bind all views
         mapView = view.findViewById(R.id.mapView)
+        introAnim = view.findViewById(R.id.iv_intro_anim)
         tvNearestHint = view.findViewById(R.id.tv_nearest_hint)
         tvScore = view.findViewById(R.id.tv_score)
         tvTeamName = view.findViewById(R.id.tv_team_name)
@@ -152,10 +156,22 @@ class MapFragment : Fragment() {
         startBlackoutListener()
         updateCaptureStats()
 
+        // INTRO ANIMATION BLOCK
+        introAnim?.let { imageView ->
+            imageView.setBackgroundResource(R.drawable.intro_animation)
+            imageView.visibility = View.VISIBLE
+
+            val anim = imageView.background as AnimationDrawable
+            anim.start()
+
+            Handler(Looper.getMainLooper()).postDelayed({
+                imageView.visibility = View.GONE
+            }, 2000)
+        }
+
         // Capture button
         btnOpenAr?.setOnClickListener {
             nearestObject?.let { obj ->
-                // Double-check not already captured by this team
                 if (obj.isCapturedByTeam(teamId)) {
                     nearestObject = null
                     btnOpenAr?.visibility = View.GONE
@@ -172,8 +188,6 @@ class MapFragment : Fragment() {
                     activity?.runOnUiThread {
                         btnOpenAr?.visibility = View.GONE
                     }
-                    // DO NOT call refreshSpawnMarkers here — mapView is null while AR is active
-                    // Markers are refreshed in onResume instead
                 }
                 parentFragmentManager.beginTransaction()
                     .replace(R.id.fragment_container, arFragment)
@@ -450,6 +464,7 @@ class MapFragment : Fragment() {
         "yellow" -> R.drawable.yellow_can_redbull
         "red"    -> R.drawable.red_can_redbull
         "pink"   -> R.drawable.pink_can_redbull
+        "neon"   -> R.drawable.neon_can_redbull
         else     -> R.drawable.blue_can_redbull
     }
 
@@ -488,6 +503,7 @@ class MapFragment : Fragment() {
                 "yellow" -> android.graphics.Color.parseColor("#EF9F27")
                 "red"    -> android.graphics.Color.parseColor("#E8002D")
                 "pink"   -> android.graphics.Color.parseColor("#D4537E")
+                "neon"   -> android.graphics.Color.parseColor("#53E0CD")
                 else     -> android.graphics.Color.GRAY
             }
             canvas.drawCircle(canWidth / 2f, canWidth / 2f, canWidth / 2f, paint)

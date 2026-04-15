@@ -331,4 +331,12 @@
 
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/iv_intro_anim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:scaleType="centerInside"
+        android:elevation="20dp"/>
+
 </FrameLayout>
