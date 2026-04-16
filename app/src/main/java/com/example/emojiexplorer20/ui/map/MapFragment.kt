@@ -98,6 +98,7 @@ class MapFragment : Fragment() {
     private var radarAlpha1 = 200
     private var radarAlpha2 = 200
     private var compassModeOn = false
+    private val localCapturedIds = mutableSetOf<String>()
 
     companion object {
         fun newInstance(teamName: String, teamId: String): MapFragment {
@@ -182,11 +183,17 @@ class MapFragment : Fragment() {
                     btnOpenAr?.visibility = View.GONE
                     return@setOnClickListener
                 }
+                if (localCapturedIds.contains(obj.id)) {
+                    nearestObject = null
+                    btnOpenAr?.visibility = View.GONE
+                    return@setOnClickListener
+                }
 
                 val arFragment = ArCaptureFragment.newInstance(obj.id, teamId)
 
                 arFragment.onCaptureSuccess = { capturedObj ->
                     capturedObj.captureForTeam(teamId)
+                    localCapturedIds.add(capturedObj.id)   // ← closing ) was missing before
                     capturedEmojis++
                     capturedEmojiList.add(capturedObj)
                     addPoints(capturedObj.rarity.points)
@@ -195,14 +202,11 @@ class MapFragment : Fragment() {
 
                     activity?.runOnUiThread {
                         btnOpenAr?.visibility = View.GONE
-
                         if (capturedObj.id.startsWith("dyn_") || capturedObj.id.startsWith("welcome_")) {
-                            // Dynamic — remove from manager and map
                             DynamicSpawnManager.removeCaptured(capturedObj.id)
                             dynamicMarkers[capturedObj.id]?.let { mapView.overlays.remove(it) }
                             dynamicMarkers.remove(capturedObj.id)
                         } else {
-                            // Static — find by ID and remove immediately, no waiting for onResume
                             val markerToRemove = spawnMarkers.firstOrNull { it.id == capturedObj.id }
                             markerToRemove?.let {
                                 mapView.overlays.remove(it)
@@ -212,6 +216,12 @@ class MapFragment : Fragment() {
                         mapView.invalidate()
                     }
                 }
+
+                // Launch the AR fragment
+                parentFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, arFragment)
+                    .addToBackStack("ar_capture")
+                    .commit()
             }
         }
 
@@ -495,9 +505,10 @@ class MapFragment : Fragment() {
     // --- Static spawn markers ---
     private fun setupSpawnMarkers() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
-            if (obj.isCapturedByTeam(teamId)) return@forEach
+            // Check both the object's own state AND our local set
+            if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
             val marker = Marker(mapView).apply {
-                id = obj.id                          // store ID here
+                id = obj.id
                 position = GeoPoint(obj.lat, obj.lng)
                 title = "Red Bull ${obj.rarity.label}"
                 snippet = "${obj.rarity.points} pts"
@@ -508,9 +519,9 @@ class MapFragment : Fragment() {
             spawnMarkers.add(marker)
         }
         SpawnConfig.POWERUP_POINTS.forEach { obj ->
-            if (obj.isCapturedByTeam(teamId)) return@forEach
+            if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
             val marker = Marker(mapView).apply {
-                id = obj.id                          // store ID here too
+                id = obj.id
                 position = GeoPoint(obj.lat, obj.lng)
                 title = "Power-Up Can"
                 snippet = "Capture for a weapon!"
@@ -614,6 +625,7 @@ class MapFragment : Fragment() {
         allObjects.forEach { obj ->
             if (obj.isCapturedByTeam(teamId)) return@forEach // guard for static capturing
             if (DynamicSpawnManager.isCaptured(obj.id)) return@forEach // guard for dynamic capturing
+            if (localCapturedIds.contains(obj.id)) return@forEach //
             val dist = GpsUtils.distanceMetres(
                 location.latitude, location.longitude,
                 obj.lat, obj.lng

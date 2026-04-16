@@ -20,8 +20,8 @@ object DynamicSpawnManager {
     private var lastUncommonSpawnMs = 0L
 
     // Thresholds
-    private const val RARE_SPAWN_EVERY_M    = 50.0   // every 20m walked
-    private const val ULTRA_SPAWN_EVERY_M   = 75.0   // every 35m walked
+    private const val RARE_SPAWN_EVERY_M    = 50.0   // every 50m walked
+    private const val ULTRA_SPAWN_EVERY_M   = 75.0   // every 75m walked
     private const val COMMON_SPAWN_EVERY_MS = 60_000L  // 45 seconds
     private const val UNCOMMON_SPAWN_EVERY_MS = 220_000L // 2 minutes
     private const val COMMON_SPAWN_RADIUS_M  = 5.0
