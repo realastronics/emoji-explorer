@@ -1,9 +1,9 @@
 package com.example.emojiexplorer20.data.repository
 
 import com.example.emojiexplorer20.data.model.Team
-import com.example.emojiexplorer20.data.model.SpawnConfig
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -15,44 +15,73 @@ class FirebaseRepository {
     private val teamsCollection = db.collection("teams")
     private var leaderboardListener: ListenerRegistration? = null
 
-    // --- Register or fetch a team ---
-    suspend fun registerTeam(teamName: String): Result<Team> {
+    /**
+     * Join an existing team (by PIN) or create a new one.
+     * Document ID = PIN — all teammates sharing the same PIN
+     * automatically write to the same Firestore document.
+     *
+     * Rules:
+     *  - If the PIN doc doesn't exist → create it with this name.
+     *  - If it exists AND name matches → let them in (resume session).
+     *  - If it exists AND name differs → return failure (wrong PIN for that team).
+     */
+    suspend fun joinOrCreateTeam(teamName: String, pin: String): Result<Team> {
         return try {
-            // Check if team already exists
-            val existing = teamsCollection
-                .whereEqualTo("name", teamName)
-                .get()
-                .await()
+            val docRef = teamsCollection.document(pin)
+            val snapshot = docRef.get().await()
 
-            if (!existing.isEmpty) {
-                val doc = existing.documents[0]
-                val team = Team(
-                    id = doc.id,
-                    name = doc.getString("name") ?: teamName,
-                    score = doc.getLong("score")?.toInt() ?: 0
+            if (!snapshot.exists()) {
+                // New team — create document keyed by PIN
+                val data = mapOf(
+                    "name"        to teamName,
+                    "pin"         to pin,
+                    "score"       to 0,
+                    "lastSeen"    to System.currentTimeMillis(),
+                    "memberCount" to 1
                 )
-                Result.success(team)
+                docRef.set(data).await()
+                Result.success(Team(id = pin, name = teamName, score = 0))
+
             } else {
-                // Create new team
-                val newTeam = hashMapOf(
-                    "name" to teamName,
-                    "score" to 0,
-                    "lastSeen" to System.currentTimeMillis()
-                )
-                val ref = teamsCollection.add(newTeam).await()
-                Result.success(Team(id = ref.id, name = teamName, score = 0))
+                val existingName = snapshot.getString("name") ?: ""
+                if (existingName.lowercase() != teamName.lowercase()) {
+                    // PIN belongs to a different team
+                    Result.failure(Exception(
+                        "PIN $pin is already used by team \"$existingName\". " +
+                                "Use that name or choose a different PIN."
+                    ))
+                } else {
+                    // Existing member rejoining — bump lastSeen and memberCount
+                    docRef.update(
+                        mapOf(
+                            "lastSeen"    to System.currentTimeMillis(),
+                            "memberCount" to (snapshot.getLong("memberCount")?.plus(1) ?: 1)
+                        )
+                    ).await()
+                    Result.success(
+                        Team(
+                            id    = pin,
+                            name  = existingName,
+                            score = snapshot.getLong("score")?.toInt() ?: 0
+                        )
+                    )
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // --- Push score update to Firestore ---
-    suspend fun updateScore(teamId: String, newScore: Int): Result<Unit> {
+    /**
+     * Add points to the team's score atomically using FieldValue.increment,
+     * so two players scoring simultaneously don't clobber each other.
+     */
+    suspend fun addPoints(teamId: String, pointsToAdd: Int): Result<Unit> {
         return try {
             teamsCollection.document(teamId).update(
                 mapOf(
-                    "score" to newScore,
+                    "score"    to com.google.firebase.firestore.FieldValue.increment(
+                        pointsToAdd.toLong()),
                     "lastSeen" to System.currentTimeMillis()
                 )
             ).await()
@@ -62,16 +91,31 @@ class FirebaseRepository {
         }
     }
 
-    suspend fun getTeamName(teamId: String): String {
+    /**
+     * Keep the old updateScore for absolute overwrites (end-of-session sync).
+     * Prefer addPoints for incremental captures.
+     */
+    suspend fun updateScore(teamId: String, newScore: Int): Result<Unit> {
         return try {
-            val doc = teamsCollection.document(teamId).get().await()
-            doc.getString("name") ?: "Unknown Team"
+            teamsCollection.document(teamId).set(
+                mapOf(
+                    "score"    to newScore,
+                    "lastSeen" to System.currentTimeMillis()
+                ),
+                SetOptions.merge()
+            ).await()
+            Result.success(Unit)
         } catch (e: Exception) {
-            "Unknown Team"
+            Result.failure(e)
         }
     }
 
-    // --- Real-time leaderboard as a Flow ---
+    suspend fun getTeamName(teamId: String): String {
+        return try {
+            teamsCollection.document(teamId).get().await().getString("name") ?: "Unknown Team"
+        } catch (e: Exception) { "Unknown Team" }
+    }
+
     fun leaderboardFlow(): Flow<List<Team>> = callbackFlow {
         leaderboardListener = teamsCollection
             .orderBy("score", com.google.firebase.firestore.Query.Direction.DESCENDING)
@@ -79,16 +123,15 @@ class FirebaseRepository {
                 if (error != null || snapshot == null) return@addSnapshotListener
                 val teams = snapshot.documents.mapNotNull { doc ->
                     Team(
-                        id = doc.id,
-                        name = doc.getString("name") ?: return@mapNotNull null,
-                        score = doc.getLong("score")?.toInt() ?: 0,
+                        id    = doc.id,
+                        name  = doc.getString("name") ?: return@mapNotNull null,
+                        score = doc.getLong("score")?.toInt() ?: 0
                     )
                 }
                 trySend(teams)
             }
         awaitClose { leaderboardListener?.remove() }
     }
-    fun cleanup() {
-        leaderboardListener?.remove()
-    }
+
+    fun cleanup() { leaderboardListener?.remove() }
 }
