@@ -67,6 +67,11 @@ object SpawnConfig {
         ),
     )
 
+    fun resetCaptureState() {
+        SPAWN_POINTS.forEach { it.capturedByTeams.clear() }
+        POWERUP_POINTS.forEach { it.capturedByTeams.clear() }
+    }
+
     val ALL_OBJECTS get() = SPAWN_POINTS + POWERUP_POINTS
 
     const val PROXIMITY_RADIUS_M     = 20.0

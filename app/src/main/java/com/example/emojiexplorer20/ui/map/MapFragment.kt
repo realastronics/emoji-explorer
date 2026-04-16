@@ -78,7 +78,6 @@ class MapFragment : Fragment() {
 
     // Dynamic spawn markers — separate from static spawnMarkers
     private val dynamicMarkers = mutableMapOf<String, Marker>()
-    private var welcomeSpawned = false
     private var firstLocationReceived = false
 
     private val repository = FirebaseRepository()
@@ -258,21 +257,6 @@ class MapFragment : Fragment() {
 
     // --- Dynamic spawn handling ---
 
-    private fun spawnWelcomeCan(lat: Double, lng: Double) {
-        if (welcomeSpawned) return
-        welcomeSpawned = true
-        val welcome = DynamicSpawnManager.spawnWelcomeCan(lat, lng)
-        activity?.runOnUiThread { addDynamicMarker(welcome) }
-        // Show toast so player knows
-        activity?.runOnUiThread {
-            Toast.makeText(
-                requireContext(),
-                "A Red Bull appeared nearby — go get it!",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
     private fun handleDynamicSpawns(lat: Double, lng: Double) {
         val newSpawns = DynamicSpawnManager.onLocationUpdate(lat, lng)
         if (newSpawns.isEmpty()) return
@@ -295,6 +279,8 @@ class MapFragment : Fragment() {
     private fun addDynamicMarker(obj: EmojiObject) {
         if (!::mapView.isInitialized) return
         // Remove old marker for same ID if exists
+        if (localCapturedIds.contains(obj.id)) return
+        if (DynamicSpawnManager.isCaptured(obj.id)) return
         dynamicMarkers[obj.id]?.let { mapView.overlays.remove(it) }
         val marker = Marker(mapView).apply {
             position = GeoPoint(obj.lat, obj.lng)
@@ -595,9 +581,14 @@ class MapFragment : Fragment() {
                     // First location — spawn welcome can
                     if (!firstLocationReceived) {
                         firstLocationReceived = true
-                        spawnWelcomeCan(location.latitude, location.longitude)
+                        val welcome = DynamicSpawnManager.spawnWelcomeCan(location.latitude, location.longitude)
+                        activity?.runOnUiThread { addDynamicMarker(welcome) }
+                        activity?.runOnUiThread {
+                            Toast.makeText(requireContext(), "A Red Bull appeared nearby!", Toast.LENGTH_LONG).show()
+                        }
                     }
-
+                    // handleDynamicSpawns will now return empty until welcomeSpawned = true inside manager
+                    handleDynamicSpawns(location.latitude, location.longitude)
                     updateProximity(location)
                     handleDynamicSpawns(location.latitude, location.longitude)
 
@@ -736,9 +727,13 @@ class MapFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         mapView.onResume()
+        nearestObject = null
+        btnOpenAr?.visibility = View.GONE
         refreshSpawnMarkers()
         // Re-add dynamic markers (they survive resume)
-        DynamicSpawnManager.dynamicSpawns.forEach { addDynamicMarker(it) }
+        DynamicSpawnManager.dynamicSpawns
+            .filter { !localCapturedIds.contains(it.id) && !DynamicSpawnManager.isCaptured(it.id) }
+            .forEach { addDynamicMarker(it) }
         if (sessionTimeLeftMs > 0) startSessionTimer()
         lastLocation?.let { updateProximity(it) }
     }
@@ -763,5 +758,6 @@ class MapFragment : Fragment() {
         super.onDestroyView()
         GpsUtils.clearHistory()
         DynamicSpawnManager.reset()
+        SpawnConfig.resetCaptureState()
     }
 }

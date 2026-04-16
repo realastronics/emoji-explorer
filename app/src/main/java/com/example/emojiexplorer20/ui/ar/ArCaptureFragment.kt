@@ -393,7 +393,6 @@ class ArCaptureFragment : Fragment() {
             }
         } catch (e: Exception) { /* ignore if vibrator unavailable */ }
     }
-
     private fun vibrate(pattern: LongArray) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
