@@ -182,7 +182,9 @@ class MapFragment : Fragment() {
                     btnOpenAr?.visibility = View.GONE
                     return@setOnClickListener
                 }
+
                 val arFragment = ArCaptureFragment.newInstance(obj.id, teamId)
+
                 arFragment.onCaptureSuccess = { capturedObj ->
                     capturedObj.captureForTeam(teamId)
                     capturedEmojis++
@@ -191,24 +193,25 @@ class MapFragment : Fragment() {
                     updateCaptureStats()
                     nearestObject = null
 
-                    // Remove dynamic marker if it was a dynamic spawn
-                    if (capturedObj.id.startsWith("dyn_") ||
-                        capturedObj.id.startsWith("welcome_")) {
-                        DynamicSpawnManager.removeCaptured(capturedObj.id)
-                        activity?.runOnUiThread {
-                            dynamicMarkers[capturedObj.id]?.let { m ->
-                                mapView.overlays.remove(m)
-                                mapView.invalidate()
-                            }
+                    activity?.runOnUiThread {
+                        btnOpenAr?.visibility = View.GONE
+
+                        if (capturedObj.id.startsWith("dyn_") || capturedObj.id.startsWith("welcome_")) {
+                            // Dynamic — remove from manager and map
+                            DynamicSpawnManager.removeCaptured(capturedObj.id)
+                            dynamicMarkers[capturedObj.id]?.let { mapView.overlays.remove(it) }
                             dynamicMarkers.remove(capturedObj.id)
+                        } else {
+                            // Static — find by ID and remove immediately, no waiting for onResume
+                            val markerToRemove = spawnMarkers.firstOrNull { it.id == capturedObj.id }
+                            markerToRemove?.let {
+                                mapView.overlays.remove(it)
+                                spawnMarkers.remove(it)
+                            }
                         }
+                        mapView.invalidate()
                     }
-                    activity?.runOnUiThread { btnOpenAr?.visibility = View.GONE }
                 }
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, arFragment)
-                    .addToBackStack("ar")
-                    .commit()
             }
         }
 
@@ -494,6 +497,7 @@ class MapFragment : Fragment() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
             if (obj.isCapturedByTeam(teamId)) return@forEach
             val marker = Marker(mapView).apply {
+                id = obj.id                          // store ID here
                 position = GeoPoint(obj.lat, obj.lng)
                 title = "Red Bull ${obj.rarity.label}"
                 snippet = "${obj.rarity.points} pts"
@@ -506,6 +510,7 @@ class MapFragment : Fragment() {
         SpawnConfig.POWERUP_POINTS.forEach { obj ->
             if (obj.isCapturedByTeam(teamId)) return@forEach
             val marker = Marker(mapView).apply {
+                id = obj.id                          // store ID here too
                 position = GeoPoint(obj.lat, obj.lng)
                 title = "Power-Up Can"
                 snippet = "Capture for a weapon!"
