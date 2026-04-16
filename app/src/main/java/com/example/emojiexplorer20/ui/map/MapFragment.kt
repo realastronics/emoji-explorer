@@ -545,12 +545,12 @@ class MapFragment : Fragment() {
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
         val canWidth = when (obj.rarity) {
-            EmojiObject.Rarity.COMMON   -> 52
-            EmojiObject.Rarity.UNCOMMON -> 58
-            EmojiObject.Rarity.RARE     -> 64
-            EmojiObject.Rarity.ULTRA    -> 72
+            EmojiObject.Rarity.COMMON   -> 100
+            EmojiObject.Rarity.UNCOMMON -> 100
+            EmojiObject.Rarity.RARE     -> 100
+            EmojiObject.Rarity.ULTRA    -> 100
         }
-        val canHeight = (canWidth * 1.74f).toInt()
+        val canHeight = (canWidth * 1.00).toInt()
         return try {
             val src = android.graphics.BitmapFactory.decodeResource(
                 resources, getCanDrawableRes(obj.emoji)
