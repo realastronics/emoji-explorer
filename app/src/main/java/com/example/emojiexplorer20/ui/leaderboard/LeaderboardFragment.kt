@@ -12,8 +12,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.emojiexplorer20.R
-import com.example.emojiexplorer20.data.model.PowerUp
-import com.example.emojiexplorer20.data.model.PowerUpType
 import com.example.emojiexplorer20.data.model.Team
 import com.example.emojiexplorer20.data.repository.FirebaseRepository
 import kotlinx.coroutines.launch
@@ -24,20 +22,14 @@ class LeaderboardFragment : Fragment() {
     private lateinit var leaderboardContainer: LinearLayout
     private var currentTeamId: String = ""
     private var currentTeamName: String = ""
-    private var heldPowerUp: PowerUpType? = null
     private var teams: List<Team> = emptyList()
 
     companion object {
-        fun newInstance(
-            teamId: String,
-            teamName: String = "",
-            heldPowerUp: String? = null
-        ): LeaderboardFragment {
+        fun newInstance(teamId: String, teamName: String = ""): LeaderboardFragment {
             val f = LeaderboardFragment()
             f.arguments = Bundle().apply {
                 putString("team_id", teamId)
                 putString("team_name", teamName)
-                if (heldPowerUp != null) putString("held_power_up", heldPowerUp)
             }
             return f
         }
@@ -56,39 +48,7 @@ class LeaderboardFragment : Fragment() {
         currentTeamId = arguments?.getString("team_id") ?: ""
         currentTeamName = arguments?.getString("team_name") ?: ""
 
-        val heldPowerUpName = arguments?.getString("held_power_up")
-        heldPowerUp = heldPowerUpName?.let {
-            try { PowerUpType.valueOf(it) } catch (e: Exception) { null }
-        }
-
         leaderboardContainer = view.findViewById(R.id.leaderboard_container)
-
-        // Show held power-up badge if available
-        val tvHeldPowerup = view.findViewById<TextView?>(R.id.tv_held_powerup)
-        val btnUsePowerup = view.findViewById<Button?>(R.id.btn_use_powerup)
-
-        if (heldPowerUp != null) {
-            tvHeldPowerup?.text = "⚡ ${heldPowerUp!!.label}"
-            tvHeldPowerup?.visibility = View.VISIBLE
-            btnUsePowerup?.visibility = View.VISIBLE
-            btnUsePowerup?.text = "USE: ${heldPowerUp!!.label.uppercase()}"
-            btnUsePowerup?.setOnClickListener {
-                val otherTeams = teams.filter { it.id != currentTeamId }
-                if (otherTeams.isEmpty()) {
-                    Toast.makeText(requireContext(), "No other teams yet!", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                val names = otherTeams.map { it.name }.toTypedArray()
-                android.app.AlertDialog.Builder(requireContext())
-                    .setTitle("Select target team")
-                    .setItems(names) { _, which ->
-                        applyPowerUp(otherTeams[which], heldPowerUp!!)
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            }
-        }
-
         view.findViewById<Button>(R.id.btn_close_leaderboard).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
@@ -171,12 +131,6 @@ class LeaderboardFragment : Fragment() {
             row.addView(tvName)
             row.addView(tvScore)
 
-            // Long press to apply power-up or blackout
-            row.setOnLongClickListener {
-                if (team.id != currentTeamId) showAttackDialog(team)
-                true
-            }
-
             leaderboardContainer.addView(row)
 
             // Divider
@@ -187,54 +141,6 @@ class LeaderboardFragment : Fragment() {
                 setBackgroundColor(Color.parseColor("#2A2A2A"))
             }
             leaderboardContainer.addView(divider)
-        }
-    }
-
-    private fun showAttackDialog(targetTeam: Team) {
-        val options = mutableListOf(
-            "⚡ Slow Crawl — slow their capture",
-            "🎯 Shrink Zone — reduce their range",
-            "🌑 BLACKOUT — blind them 7 seconds"
-        )
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Attack ${targetTeam.name}")
-            .setItems(options.toTypedArray()) { _, which ->
-                when (which) {
-                    0 -> applyPowerUp(targetTeam, PowerUpType.SLOW_CAPTURE)
-                    1 -> applyPowerUp(targetTeam, PowerUpType.SHRINK_ZONE)
-                    2 -> applyBlackout(targetTeam)
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun applyPowerUp(targetTeam: Team, type: PowerUpType) {
-        val powerUp = PowerUp(
-            type = type,
-            fromTeamId = currentTeamId,
-            targetTeamId = targetTeam.id,
-            durationMs = type.durationMs
-        )
-        lifecycleScope.launch {
-            repository.applyPowerUp(powerUp)
-            Toast.makeText(
-                requireContext(),
-                "Power-up applied to ${targetTeam.name}!",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun applyBlackout(targetTeam: Team) {
-        lifecycleScope.launch {
-            val myName = repository.getTeamName(currentTeamId)
-            repository.applyBlackout(currentTeamId, myName, targetTeam.id)
-            Toast.makeText(
-                requireContext(),
-                "BLACKOUT sent to ${targetTeam.name}!",
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
 

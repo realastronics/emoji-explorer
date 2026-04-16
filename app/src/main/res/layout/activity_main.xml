@@ -16,4 +16,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- One-time launch banner — shown once, covers full screen -->
+    <ImageView
+        android:id="@+id/iv_launch_banner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter"
+        android:background="#FF000000"
+        android:padding="32dp"
+        android:elevation="100dp"
+        android:visibility="gone"
+        android:contentDescription="Red Bull Banner" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

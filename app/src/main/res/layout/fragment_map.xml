@@ -331,14 +331,4 @@
 
     </LinearLayout>
 
-    <ImageView
-        android:id="@+id/iv_intro_anim"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
-        android:layout_gravity="center"
-        android:visibility="gone"
-        android:scaleType="fitCenter"
-        android:alpha="0.95"
-        android:elevation="20dp"/>
-
 </FrameLayout>

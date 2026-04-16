@@ -21,7 +21,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.emojiexplorer20.R
 import com.example.emojiexplorer20.data.model.EmojiObject
-import com.example.emojiexplorer20.data.model.PowerUpType
 import com.example.emojiexplorer20.data.model.SpawnConfig
 import com.example.emojiexplorer20.data.repository.FirebaseRepository
 import com.example.emojiexplorer20.ui.ar.ArCaptureFragment
@@ -47,7 +46,6 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 class MapFragment : Fragment() {
 
     private lateinit var mapView: MapView
-    private var introAnim: ImageView? = null
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
     private lateinit var myLocationOverlay: MyLocationNewOverlay
@@ -63,9 +61,6 @@ class MapFragment : Fragment() {
     private var tvCaptureStats: TextView? = null
     private var tvDetectedCount: TextView? = null
     private var tvClosestDist: TextView? = null
-    private var blackoutOverlay: FrameLayout? = null
-    private var tvBlackoutAttacker: TextView? = null
-    private var tvBlackoutTimer: TextView? = null
 
     private var currentScore = 0
     private var teamName = "Team Alpha"
@@ -73,7 +68,6 @@ class MapFragment : Fragment() {
     private var nearestObject: EmojiObject? = null
     private var lastLocation: Location? = null
     private var capturedEmojis = 0
-    private var heldPowerUp: PowerUpType? = null
     private val capturedEmojiList = mutableListOf<EmojiObject>()
 
     // Dynamic spawn markers — separate from static spawnMarkers
@@ -83,7 +77,6 @@ class MapFragment : Fragment() {
     private val repository = FirebaseRepository()
     private val syncHandler = Handler(Looper.getMainLooper())
     private val timerHandler = Handler(Looper.getMainLooper())
-    private val blackoutHandler = Handler(Looper.getMainLooper())
     private val radarHandler = Handler(Looper.getMainLooper())
     private var lastSyncedScore = 0
 
@@ -128,7 +121,6 @@ class MapFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         mapView = view.findViewById(R.id.mapView)
-        introAnim = view.findViewById(R.id.iv_intro_anim)
         tvNearestHint = view.findViewById(R.id.tv_nearest_hint)
         tvScore = view.findViewById(R.id.tv_score)
         tvTeamName = view.findViewById(R.id.tv_team_name)
@@ -140,9 +132,6 @@ class MapFragment : Fragment() {
         tvCaptureStats = view.findViewById(R.id.tv_capture_stats)
         tvDetectedCount = view.findViewById(R.id.tv_detected_count)
         tvClosestDist = view.findViewById(R.id.tv_closest_dist)
-        blackoutOverlay = view.findViewById(R.id.blackout_overlay)
-        tvBlackoutAttacker = view.findViewById(R.id.tv_blackout_attacker)
-        tvBlackoutTimer = view.findViewById(R.id.tv_blackout_timer)
 
         tvTeamName?.text = teamName
         activity?.window?.addFlags(
@@ -157,18 +146,7 @@ class MapFragment : Fragment() {
         startScoreSync()
         startSessionTimer()
         startRadarAnimation()
-        startBlackoutListener()
         updateCaptureStats()
-
-        // Intro animation
-        introAnim?.let { iv ->
-            iv.setBackgroundResource(R.drawable.intro_animation)
-            iv.visibility = View.VISIBLE
-            (iv.background as? AnimationDrawable)?.start()
-            Handler(Looper.getMainLooper()).postDelayed({
-                iv.visibility = View.GONE
-            }, 2700)
-        }
 
         btnOpenAr?.setOnClickListener {
             nearestObject?.let { obj ->
@@ -228,13 +206,11 @@ class MapFragment : Fragment() {
             parentFragmentManager.beginTransaction()
                 .replace(
                     R.id.fragment_container,
-                    LeaderboardFragment.newInstance(teamId, teamName, heldPowerUp?.name)
+                    LeaderboardFragment.newInstance(teamId, teamName)
                 )
                 .addToBackStack("leaderboard")
                 .commit()
         }
-
-        tvCaptureStats?.setOnClickListener { showEmojiVault() }
 
         view.findViewById<View>(R.id.btn_compass)?.setOnClickListener {
             compassModeOn = !compassModeOn
@@ -263,15 +239,6 @@ class MapFragment : Fragment() {
         activity?.runOnUiThread {
             newSpawns.forEach { spawn ->
                 addDynamicMarker(spawn)
-                // Notify for rare/ultra only — don't spam for commons
-                if (spawn.rarity == EmojiObject.Rarity.RARE ||
-                    spawn.rarity == EmojiObject.Rarity.ULTRA) {
-                    Toast.makeText(
-                        requireContext(),
-                        "A ${spawn.rarity.label} Red Bull appeared nearby!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
             }
         }
     }
@@ -292,37 +259,6 @@ class MapFragment : Fragment() {
         mapView.overlays.add(marker)
         dynamicMarkers[obj.id] = marker
         mapView.invalidate()
-    }
-
-    // --- Emoji Vault ---
-    private fun showEmojiVault() {
-        if (capturedEmojiList.isEmpty()) {
-            Toast.makeText(requireContext(), "No cans captured yet!", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val sorted = capturedEmojiList.sortedByDescending { it.rarity.points }
-        val message = buildString {
-            EmojiObject.Rarity.values()
-                .sortedByDescending { it.points }
-                .forEach { rarity ->
-                    val items = sorted.filter { it.rarity == rarity }
-                    if (items.isNotEmpty()) {
-                        val icon = when (rarity) {
-                            EmojiObject.Rarity.ULTRA    -> "Pink Can"
-                            EmojiObject.Rarity.RARE     -> "Red Can"
-                            EmojiObject.Rarity.UNCOMMON -> "Yellow Can"
-                            EmojiObject.Rarity.COMMON   -> "Blue Can"
-                        }
-                        append("$icon — ${rarity.label} (${rarity.points}pts)\n")
-                        append("  x${items.size} captured — ${items.size * rarity.points}pts total\n\n")
-                    }
-                }
-        }
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Your Collection — $capturedEmojis cans")
-            .setMessage(message)
-            .setPositiveButton("Close", null)
-            .show()
     }
 
     // --- Marker management ---
@@ -389,7 +325,7 @@ class MapFragment : Fragment() {
                 parentFragmentManager.beginTransaction()
                     .replace(
                         R.id.fragment_container,
-                        LeaderboardFragment.newInstance(teamId, teamName, null)
+                        LeaderboardFragment.newInstance(teamId, teamName)
                     )
                     .commit()
             }
@@ -504,19 +440,6 @@ class MapFragment : Fragment() {
             mapView.overlays.add(marker)
             spawnMarkers.add(marker)
         }
-        SpawnConfig.POWERUP_POINTS.forEach { obj ->
-            if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
-            val marker = Marker(mapView).apply {
-                id = obj.id
-                position = GeoPoint(obj.lat, obj.lng)
-                title = "Power-Up Can"
-                snippet = "Capture for a weapon!"
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                icon = createEmojiMarker(obj)
-            }
-            mapView.overlays.add(marker)
-            spawnMarkers.add(marker)
-        }
         mapView.invalidate()
     }
 
@@ -530,28 +453,56 @@ class MapFragment : Fragment() {
     }
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
-        val canWidth = when (obj.rarity) {
-            EmojiObject.Rarity.COMMON   -> 100
-            EmojiObject.Rarity.UNCOMMON -> 100
-            EmojiObject.Rarity.RARE     -> 100
-            EmojiObject.Rarity.ULTRA    -> 100
+        // If it's an emoji type, render the emoji as text on a circle
+        if (obj.isEmojiType()) {
+            return createEmojiTextMarker(obj.emoji)
         }
-        val canHeight = (canWidth * 1.00).toInt()
+
+        val canSize = 100
         return try {
             val src = android.graphics.BitmapFactory.decodeResource(
                 resources, getCanDrawableRes(obj.emoji)
-            ) ?: throw Exception("null")
+            ) ?: throw Exception("null bitmap")
             android.graphics.drawable.BitmapDrawable(
                 resources,
-                android.graphics.Bitmap.createScaledBitmap(src, canWidth, canHeight, true)
+                android.graphics.Bitmap.createScaledBitmap(src, canSize, canSize, true)
             )
         } catch (e: Exception) {
-            val fallback = android.graphics.Bitmap.createBitmap(
-                canWidth, canWidth, android.graphics.Bitmap.Config.ARGB_8888
-            )
-            val canvas = android.graphics.Canvas(fallback)
-            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-            paint.color = when (obj.emoji) {
+            createColorCircleMarker(obj.emoji, canSize)
+        }
+    }
+    private fun createEmojiTextMarker(emoji: String): android.graphics.drawable.BitmapDrawable {
+        val size = 90
+        val bitmap = android.graphics.Bitmap.createBitmap(
+            size, size, android.graphics.Bitmap.Config.ARGB_8888
+        )
+        val canvas = android.graphics.Canvas(bitmap)
+        // Semi-transparent white circle background
+        val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#CC1A1A2E")
+            style = android.graphics.Paint.Style.FILL
+        }
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint)
+        // Draw emoji text centered
+        val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 42f
+            textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val yPos = size / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
+        canvas.drawText(emoji, size / 2f, yPos, textPaint)
+        return android.graphics.drawable.BitmapDrawable(resources, bitmap)
+    }
+
+    private fun createColorCircleMarker(
+        canColor: String,
+        size: Int
+    ): android.graphics.drawable.BitmapDrawable {
+        val bitmap = android.graphics.Bitmap.createBitmap(
+            size, size, android.graphics.Bitmap.Config.ARGB_8888
+        )
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = when (canColor) {
                 "blue"   -> android.graphics.Color.parseColor("#378ADD")
                 "yellow" -> android.graphics.Color.parseColor("#EF9F27")
                 "red"    -> android.graphics.Color.parseColor("#E8002D")
@@ -559,9 +510,9 @@ class MapFragment : Fragment() {
                 "neon"   -> android.graphics.Color.parseColor("#53E0CD")
                 else     -> android.graphics.Color.GRAY
             }
-            canvas.drawCircle(canWidth / 2f, canWidth / 2f, canWidth / 2f, paint)
-            android.graphics.drawable.BitmapDrawable(resources, fallback)
         }
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        return android.graphics.drawable.BitmapDrawable(resources, bitmap)
     }
 
     // --- Location updates ---
@@ -694,31 +645,6 @@ class MapFragment : Fragment() {
         ring.startAnimation(pulse)
     }
 
-    private fun startBlackoutListener() {
-        if (teamId.isEmpty()) return
-        repository.listenForBlackout(teamId) { attackerName ->
-            triggerBlackout(attackerName)
-        }
-    }
-
-    private fun triggerBlackout(attackerName: String) {
-        if (!isAdded) return
-        activity?.runOnUiThread {
-            tvBlackoutAttacker?.text = "by $attackerName"
-            blackoutOverlay?.visibility = View.VISIBLE
-            var secondsLeft = 7
-            val runner = object : Runnable {
-                override fun run() {
-                    if (secondsLeft <= 0) { blackoutOverlay?.visibility = View.GONE; return }
-                    tvBlackoutTimer?.text = secondsLeft.toString()
-                    secondsLeft--
-                    blackoutHandler.postDelayed(this, 1000L)
-                }
-            }
-            blackoutHandler.post(runner)
-        }
-    }
-
     fun addPoints(points: Int) {
         currentScore += points
         activity?.runOnUiThread { tvScore?.text = "$currentScore pts" }
@@ -747,7 +673,6 @@ class MapFragment : Fragment() {
         }
         syncHandler.removeCallbacksAndMessages(null)
         timerHandler.removeCallbacksAndMessages(null)
-        blackoutHandler.removeCallbacksAndMessages(null)
         radarHandler.removeCallbacksAndMessages(null)
     }
 

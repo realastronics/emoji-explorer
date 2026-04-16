@@ -97,11 +97,6 @@ class ArCaptureFragment : Fragment() {
         reticleFill = view.findViewById(R.id.reticle_fill)
         scanLine = view.findViewById(R.id.scan_line)
 
-        val objectId = arguments?.getString("object_id")
-        targetObject = SpawnConfig.SPAWN_POINTS.find { it.id == objectId }
-            ?: SpawnConfig.POWERUP_POINTS.find { it.id == objectId }
-                    ?: DynamicSpawnManager.dynamicSpawns.find { it.id == objectId }
-
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
             tvSuccessPoints.text = "+${obj.rarity.points} pts!"
