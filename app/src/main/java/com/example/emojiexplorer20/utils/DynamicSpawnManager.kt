@@ -15,7 +15,7 @@ object DynamicSpawnManager {
     private var welcomeSpawned = false
 
     // Distance walked before a new spawn is triggered
-    private const val SPAWN_EVERY_M = 20.0
+    private const val SPAWN_EVERY_M = 15.0
 
     // Timed spawn interval (fallback for slow walkers)
     private const val TIMED_SPAWN_EVERY_MS = 90_000L

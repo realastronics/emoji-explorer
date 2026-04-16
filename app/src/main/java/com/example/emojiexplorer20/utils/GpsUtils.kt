@@ -67,7 +67,7 @@ object GpsUtils {
 
     fun isLocationSuspicious(location: Location): Boolean {
         // Reject poor accuracy readings outright — this is the main jitter fix
-        if (!location.hasAccuracy() || location.accuracy > 20f) return true
+        if (!location.hasAccuracy() || location.accuracy > 35f) return true
 
         val now = System.currentTimeMillis()
         val last = lastCheckedLocation

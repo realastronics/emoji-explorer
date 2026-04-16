@@ -27,7 +27,7 @@ object SpawnConfig {
     const val PROXIMITY_RADIUS_M      = 20.0
     const val AR_TRIGGER_RADIUS_M     = 15.0
     const val CAPTURE_HOLD_MS         = 1800L
-    const val GPS_ACCURACY_GATE_M     = 20f
+    const val GPS_ACCURACY_GATE_M     = 35f
     const val GPS_JUMP_THRESHOLD_M    = 80.0
     const val LEADERBOARD_SYNC_MS     = 4000L
     const val GPS_SMOOTH_WINDOW       = 3

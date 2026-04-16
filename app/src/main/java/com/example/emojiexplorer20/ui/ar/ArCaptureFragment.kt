@@ -63,6 +63,7 @@ class ArCaptureFragment : Fragment() {
     private var captureCompleted = false
 
     var onCaptureSuccess: ((EmojiObject) -> Unit)? = null
+    private var teamId: String = ""
 
 
     companion object {
@@ -95,6 +96,8 @@ class ArCaptureFragment : Fragment() {
                     ?: DynamicSpawnManager.dynamicSpawns.firstOrNull { it.id == id }
             }
         }
+
+        teamId = arguments?.getString("team_id") ?: ""
 
         textureView = view.findViewById(R.id.arSceneView)
         ivCanOverlay = view.findViewById(R.id.iv_can_overlay)
@@ -315,7 +318,6 @@ class ArCaptureFragment : Fragment() {
 
         if (captureCompleted) return       // hard stop — can't fire twice
         captureCompleted = true
-
         isCapturing = false
         captureAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
