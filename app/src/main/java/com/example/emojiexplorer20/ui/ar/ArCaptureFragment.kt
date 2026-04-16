@@ -82,7 +82,19 @@ class ArCaptureFragment : Fragment() {
     ): View? = inflater.inflate(R.layout.fragment_ar, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
         super.onViewCreated(view, savedInstanceState)
+
+        if (targetObject == null) {
+            val objectId = arguments?.getString("object_id")
+            val teamId   = arguments?.getString("team_id") ?: ""
+            targetObject = objectId?.let { id ->
+                // Check static spawns first
+                SpawnConfig.ALL_OBJECTS.firstOrNull { it.id == id }
+                // Then dynamic spawns
+                    ?: DynamicSpawnManager.dynamicSpawns.firstOrNull { it.id == id }
+            }
+        }
 
         textureView = view.findViewById(R.id.arSceneView)
         ivCanOverlay = view.findViewById(R.id.iv_can_overlay)
