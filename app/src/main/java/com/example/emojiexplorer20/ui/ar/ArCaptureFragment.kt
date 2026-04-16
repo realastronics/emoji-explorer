@@ -50,6 +50,7 @@ class ArCaptureFragment : Fragment() {
     private lateinit var captureSuccessOverlay: LinearLayout
     private lateinit var reticleFill: View
     private lateinit var scanLine: View
+    private var tvCapturePct: TextView? = null   // optional — safe null
 
     private var cameraDevice: CameraDevice? = null
     private var captureSession: CameraCaptureSession? = null
@@ -64,7 +65,6 @@ class ArCaptureFragment : Fragment() {
 
     var onCaptureSuccess: ((EmojiObject) -> Unit)? = null
     private var teamId: String = ""
-
 
     companion object {
         fun newInstance(objectId: String, teamId: String): ArCaptureFragment {
@@ -83,16 +83,12 @@ class ArCaptureFragment : Fragment() {
     ): View? = inflater.inflate(R.layout.fragment_ar, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-
         super.onViewCreated(view, savedInstanceState)
 
         if (targetObject == null) {
             val objectId = arguments?.getString("object_id")
-            val teamId   = arguments?.getString("team_id") ?: ""
             targetObject = objectId?.let { id ->
-                // Check static spawns first
                 SpawnConfig.ALL_OBJECTS.firstOrNull { it.id == id }
-                // Then dynamic spawns
                     ?: DynamicSpawnManager.dynamicSpawns.firstOrNull { it.id == id }
             }
         }
@@ -111,13 +107,20 @@ class ArCaptureFragment : Fragment() {
         captureSuccessOverlay = view.findViewById(R.id.capture_success_overlay)
         reticleFill = view.findViewById(R.id.reticle_fill)
         scanLine = view.findViewById(R.id.scan_line)
+        tvCapturePct = view.findViewById(R.id.tv_capture_pct)
+
+        // ── FIX: pivot must be set in code after layout so it is 0px from left ──
+        // XML transformPivotX="0dp" on a match_parent view resolves to 0 correctly,
+        // but we set it explicitly here to be safe and clear.
+        reticleFill.post {
+            reticleFill.pivotX = 0f
+        }
 
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
             tvSuccessPoints.text = "+${obj.rarity.points} pts!"
             tvArHint.text = "Red Bull ${obj.rarity.label} — hold CAPTURE!"
 
-            // Set can image
             val drawableRes = when (obj.emoji) {
                 "blue"   -> R.drawable.blue_can_redbull
                 "yellow" -> R.drawable.yellow_can_redbull
@@ -128,7 +131,6 @@ class ArCaptureFragment : Fragment() {
             }
             ivCanOverlay.setImageResource(drawableRes)
 
-            // Success overlay — show can image too
             view.findViewById<android.widget.ImageView?>(R.id.iv_success_can)
                 ?.setImageResource(drawableRes)
         }
@@ -147,15 +149,12 @@ class ArCaptureFragment : Fragment() {
         }
 
         setupCaptureButton()
-
         btnPhoto.setOnClickListener { capturePhoto() }
-
         view.findViewById<Button>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
     }
 
-    // Emoji gently bobs up and down
     private fun startEmojiFloatAnimation() {
         android.animation.ObjectAnimator.ofFloat(ivCanOverlay, "translationY", -20f, 20f).apply {
             duration = 1500
@@ -166,7 +165,6 @@ class ArCaptureFragment : Fragment() {
         }
     }
 
-    // Green scan line sweeps down the screen
     private fun startScanLineAnimation() {
         scanLine.visibility = View.VISIBLE
         val screenHeight = resources.displayMetrics.heightPixels.toFloat()
@@ -181,9 +179,8 @@ class ArCaptureFragment : Fragment() {
         }
     }
 
-    // Blinking SCANNING text
     private fun startScanStatusBlink() {
-        val blink = ObjectAnimator.ofFloat(tvScanStatus, "alpha", 1f, 0.2f).apply {
+        ObjectAnimator.ofFloat(tvScanStatus, "alpha", 1f, 0.2f).apply {
             duration = 800
             repeatMode = ValueAnimator.REVERSE
             repeatCount = ValueAnimator.INFINITE
@@ -237,7 +234,7 @@ class ArCaptureFragment : Fragment() {
                                 session.setRepeatingRequest(
                                     previewRequest.build(), null, cameraHandler
                                 )
-                            } catch (e: Exception) { /* ignore */ }
+                            } catch (e: Exception) { }
                         }
                         override fun onConfigureFailed(session: CameraCaptureSession) {}
                     }
@@ -283,8 +280,8 @@ class ArCaptureFragment : Fragment() {
         if (isCapturing) return
         isCapturing = true
         tvCaptureStatus.text = "Hold steady..."
-
-        // Light haptic buzz on start
+        tvCapturePct?.visibility = View.VISIBLE
+        tvCapturePct?.text = "0%"
         vibrate(50)
 
         captureAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
@@ -292,7 +289,18 @@ class ArCaptureFragment : Fragment() {
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { anim ->
                 val p = anim.animatedValue as Float
+                // ── FIX: scaleX on a match_parent view with pivotX=0 correctly
+                //    fills from left to right as p goes 0→1 ──
                 reticleFill.scaleX = p
+                // Update % label so user knows progress
+                val pct = (p * 100).toInt()
+                tvCapturePct?.text = "$pct%"
+                tvCaptureStatus.text = when {
+                    pct < 30  -> "Hold steady..."
+                    pct < 60  -> "Locking on..."
+                    pct < 85  -> "Almost there!"
+                    else      -> "Gotcha! 🎯"
+                }
                 // Progress haptic ticks
                 if (p > 0.5f && p < 0.52f) vibrate(30)
                 if (p > 0.8f && p < 0.82f) vibrate(30)
@@ -310,20 +318,19 @@ class ArCaptureFragment : Fragment() {
         captureAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
         reticleFill.scaleX = 0f
-        reticleFill.scaleY = 0f
         tvCaptureStatus.text = "Hold CAPTURE to catch it!"
+        tvCapturePct?.text = "0%"
+        tvCapturePct?.visibility = View.GONE
     }
 
     private fun completeCapture() {
-
-        if (captureCompleted) return       // hard stop — can't fire twice
+        if (captureCompleted) return
         captureCompleted = true
         isCapturing = false
         captureAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
         val obj = targetObject ?: return
 
-        // For dynamic spawns, double-check it hasn't been captured already
         val isDynamic = obj.id.startsWith("dyn_") || obj.id.startsWith("welcome_")
         if (isDynamic && DynamicSpawnManager.isCaptured(obj.id)) {
             Toast.makeText(requireContext(), "Already captured!", Toast.LENGTH_SHORT).show()
@@ -332,10 +339,7 @@ class ArCaptureFragment : Fragment() {
         }
 
         obj.isCaptured = true
-
-        // Strong success haptic pattern
         vibrate(longArrayOf(0, 100, 50, 200))
-
         captureSuccessOverlay.visibility = View.VISIBLE
         onCaptureSuccess?.invoke(obj)
 
@@ -344,7 +348,6 @@ class ArCaptureFragment : Fragment() {
         }, 500L)
     }
 
-    // Capture photo to gallery
     private fun capturePhoto() {
         val bitmap = textureView.bitmap ?: run {
             Toast.makeText(requireContext(), "Camera not ready", Toast.LENGTH_SHORT).show()
@@ -380,39 +383,30 @@ class ArCaptureFragment : Fragment() {
                 val vm = requireContext()
                     .getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vm.defaultVibrator.vibrate(
-                    VibrationEffect.createOneShot(
-                        durationMs, VibrationEffect.DEFAULT_AMPLITUDE
-                    )
+                    VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
                 )
             } else {
                 @Suppress("DEPRECATION")
-                val v = requireContext()
-                    .getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                val v = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    v.vibrate(
-                        VibrationEffect.createOneShot(
-                            durationMs, VibrationEffect.DEFAULT_AMPLITUDE
-                        )
-                    )
+                    v.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
                 } else {
                     @Suppress("DEPRECATION")
                     v.vibrate(durationMs)
                 }
             }
-        } catch (e: Exception) { /* ignore if vibrator unavailable */ }
+        } catch (e: Exception) { }
     }
+
     private fun vibrate(pattern: LongArray) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vm = requireContext()
                     .getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vm.defaultVibrator.vibrate(
-                    VibrationEffect.createWaveform(pattern, -1)
-                )
+                vm.defaultVibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
             } else {
                 @Suppress("DEPRECATION")
-                val v = requireContext()
-                    .getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                val v = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     v.vibrate(VibrationEffect.createWaveform(pattern, -1))
                 } else {
@@ -420,7 +414,7 @@ class ArCaptureFragment : Fragment() {
                     v.vibrate(pattern, -1)
                 }
             }
-        } catch (e: Exception) { /* ignore */ }
+        } catch (e: Exception) { }
     }
 
     private fun closeCamera() {

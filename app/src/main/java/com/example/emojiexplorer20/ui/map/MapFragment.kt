@@ -1,6 +1,7 @@
 package com.example.emojiexplorer20.ui.map
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.location.Location
 import android.os.Bundle
 import android.os.Handler
@@ -17,9 +18,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.graphics.drawable.AnimationDrawable
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.emojiexplorer20.R
+import com.example.emojiexplorer20.TeamEntryActivity
 import com.example.emojiexplorer20.data.model.EmojiObject
 import com.example.emojiexplorer20.data.model.SpawnConfig
 import com.example.emojiexplorer20.data.repository.FirebaseRepository
@@ -70,7 +73,6 @@ class MapFragment : Fragment() {
     private var capturedEmojis = 0
     private val capturedEmojiList = mutableListOf<EmojiObject>()
 
-    // Dynamic spawn markers — separate from static spawnMarkers
     private val dynamicMarkers = mutableMapOf<String, Marker>()
     private var firstLocationReceived = false
 
@@ -148,6 +150,31 @@ class MapFragment : Fragment() {
         startRadarAnimation()
         updateCaptureStats()
 
+        // ── LOGOUT BUTTON ──────────────────────────────────────────────────────
+        view.findViewById<Button?>(R.id.btn_logout)?.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Log Out")
+                .setMessage("Leave the game? Your score is saved.")
+                .setPositiveButton("Log Out") { _, _ ->
+                    // Clear saved team prefs so TeamEntry shows fresh
+                    requireContext()
+                        .getSharedPreferences("team_prefs", android.content.Context.MODE_PRIVATE)
+                        .edit().clear().apply()
+                    // Stop timers before leaving
+                    timerRunning = false
+                    syncHandler.removeCallbacksAndMessages(null)
+                    timerHandler.removeCallbacksAndMessages(null)
+                    radarHandler.removeCallbacksAndMessages(null)
+                    // Go back to TeamEntryActivity
+                    val intent = Intent(requireContext(), TeamEntryActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         btnOpenAr?.setOnClickListener {
             nearestObject?.let { obj ->
                 if (obj.isCapturedByTeam(teamId)) {
@@ -170,7 +197,7 @@ class MapFragment : Fragment() {
 
                 arFragment.onCaptureSuccess = { capturedObj ->
                     capturedObj.captureForTeam(teamId)
-                    localCapturedIds.add(capturedObj.id)   // ← closing ) was missing before
+                    localCapturedIds.add(capturedObj.id)
                     capturedEmojis++
                     capturedEmojiList.add(capturedObj)
                     addPoints(capturedObj.rarity.points)
@@ -194,7 +221,6 @@ class MapFragment : Fragment() {
                     }
                 }
 
-                // Launch the AR fragment
                 parentFragmentManager.beginTransaction()
                     .replace(R.id.fragment_container, arFragment)
                     .addToBackStack("ar_capture")
@@ -245,7 +271,6 @@ class MapFragment : Fragment() {
 
     private fun addDynamicMarker(obj: EmojiObject) {
         if (!::mapView.isInitialized) return
-        // Remove old marker for same ID if exists
         if (localCapturedIds.contains(obj.id)) return
         if (DynamicSpawnManager.isCaptured(obj.id)) return
         dynamicMarkers[obj.id]?.let { mapView.overlays.remove(it) }
@@ -427,7 +452,6 @@ class MapFragment : Fragment() {
     // --- Static spawn markers ---
     private fun setupSpawnMarkers() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
-            // Check both the object's own state AND our local set
             if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
             val marker = Marker(mapView).apply {
                 id = obj.id
@@ -453,11 +477,9 @@ class MapFragment : Fragment() {
     }
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
-        // If it's an emoji type, render the emoji as text on a circle
         if (obj.isEmojiType()) {
             return createEmojiTextMarker(obj.emoji)
         }
-
         val canSize = 100
         return try {
             val src = android.graphics.BitmapFactory.decodeResource(
@@ -471,19 +493,18 @@ class MapFragment : Fragment() {
             createColorCircleMarker(obj.emoji, canSize)
         }
     }
+
     private fun createEmojiTextMarker(emoji: String): android.graphics.drawable.BitmapDrawable {
         val size = 90
         val bitmap = android.graphics.Bitmap.createBitmap(
             size, size, android.graphics.Bitmap.Config.ARGB_8888
         )
         val canvas = android.graphics.Canvas(bitmap)
-        // Semi-transparent white circle background
         val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#CC1A1A2E")
             style = android.graphics.Paint.Style.FILL
         }
         canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint)
-        // Draw emoji text centered
         val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             textSize = 42f
             textAlign = android.graphics.Paint.Align.CENTER
@@ -529,7 +550,6 @@ class MapFragment : Fragment() {
                     val location = GpsUtils.smoothLocation(raw)
                     lastLocation = location
 
-                    // First location — spawn welcome can
                     if (!firstLocationReceived) {
                         firstLocationReceived = true
                         val welcome = DynamicSpawnManager.spawnWelcomeCan(location.latitude, location.longitude)
@@ -538,10 +558,10 @@ class MapFragment : Fragment() {
                             Toast.makeText(requireContext(), "A Red Bull appeared nearby!", Toast.LENGTH_LONG).show()
                         }
                     }
-                    // handleDynamicSpawns will now return empty until welcomeSpawned = true inside manager
+
+                    // Single call — removed the accidental duplicate
                     handleDynamicSpawns(location.latitude, location.longitude)
                     updateProximity(location)
-                    handleDynamicSpawns(location.latitude, location.longitude)
 
                     if (compassModeOn && raw.hasBearing()) {
                         mapView.mapOrientation = -raw.bearing
@@ -556,18 +576,17 @@ class MapFragment : Fragment() {
         )
     }
 
-    // --- Proximity detection — checks BOTH static and dynamic spawns ---
+    // --- Proximity detection ---
     private fun updateProximity(location: Location) {
         var closestDist = Double.MAX_VALUE
         var closestObj: EmojiObject? = null
         var detectedCount = 0
 
-        // Check static spawn points
         val allObjects = SpawnConfig.ALL_OBJECTS + DynamicSpawnManager.dynamicSpawns
         allObjects.forEach { obj ->
-            if (obj.isCapturedByTeam(teamId)) return@forEach // guard for static capturing
-            if (DynamicSpawnManager.isCaptured(obj.id)) return@forEach // guard for dynamic capturing
-            if (localCapturedIds.contains(obj.id)) return@forEach //
+            if (obj.isCapturedByTeam(teamId)) return@forEach
+            if (DynamicSpawnManager.isCaptured(obj.id)) return@forEach
+            if (localCapturedIds.contains(obj.id)) return@forEach
             val dist = GpsUtils.distanceMetres(
                 location.latitude, location.longitude,
                 obj.lat, obj.lng
@@ -656,7 +675,6 @@ class MapFragment : Fragment() {
         nearestObject = null
         btnOpenAr?.visibility = View.GONE
         refreshSpawnMarkers()
-        // Re-add dynamic markers (they survive resume)
         DynamicSpawnManager.dynamicSpawns
             .filter { !localCapturedIds.contains(it.id) && !DynamicSpawnManager.isCaptured(it.id) }
             .forEach { addDynamicMarker(it) }
