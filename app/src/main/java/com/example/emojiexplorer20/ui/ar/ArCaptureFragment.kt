@@ -34,6 +34,7 @@ import androidx.fragment.app.Fragment
 import com.example.emojiexplorer20.R
 import com.example.emojiexplorer20.data.model.EmojiObject
 import com.example.emojiexplorer20.data.model.SpawnConfig
+import com.example.emojiexplorer20.utils.DynamicSpawnManager
 
 class ArCaptureFragment : Fragment() {
 
@@ -59,8 +60,10 @@ class ArCaptureFragment : Fragment() {
     private var captureAnimator: ValueAnimator? = null
     private var scanAnimator: ObjectAnimator? = null
     private val handler = Handler(Looper.getMainLooper())
+    private var captureCompleted = false
 
     var onCaptureSuccess: ((EmojiObject) -> Unit)? = null
+
 
     companion object {
         fun newInstance(objectId: String, teamId: String): ArCaptureFragment {
@@ -97,6 +100,7 @@ class ArCaptureFragment : Fragment() {
         val objectId = arguments?.getString("object_id")
         targetObject = SpawnConfig.SPAWN_POINTS.find { it.id == objectId }
             ?: SpawnConfig.POWERUP_POINTS.find { it.id == objectId }
+                    ?: DynamicSpawnManager.dynamicSpawns.find { it.id == objectId }
 
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
@@ -109,6 +113,7 @@ class ArCaptureFragment : Fragment() {
                 "yellow" -> R.drawable.yellow_can_redbull
                 "red"    -> R.drawable.red_can_redbull
                 "pink"   -> R.drawable.pink_can_redbull
+                "neon"   -> R.drawable.neon_can_redbull
                 else     -> R.drawable.blue_can_redbull
             }
             ivCanOverlay.setImageResource(drawableRes)
@@ -301,10 +306,23 @@ class ArCaptureFragment : Fragment() {
     }
 
     private fun completeCapture() {
+
+        if (captureCompleted) return       // hard stop — can't fire twice
+        captureCompleted = true
+
         isCapturing = false
         captureAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
         val obj = targetObject ?: return
+
+        // For dynamic spawns, double-check it hasn't been captured already
+        val isDynamic = obj.id.startsWith("dyn_") || obj.id.startsWith("welcome_")
+        if (isDynamic && DynamicSpawnManager.isCaptured(obj.id)) {
+            Toast.makeText(requireContext(), "Already captured!", Toast.LENGTH_SHORT).show()
+            handler.postDelayed({ parentFragmentManager.popBackStack() }, 1000L)
+            return
+        }
+
         obj.isCaptured = true
 
         // Strong success haptic pattern
@@ -315,7 +333,7 @@ class ArCaptureFragment : Fragment() {
 
         handler.postDelayed({
             if (isAdded) parentFragmentManager.popBackStack()
-        }, 2500L)
+        }, 500L)
     }
 
     // Capture photo to gallery

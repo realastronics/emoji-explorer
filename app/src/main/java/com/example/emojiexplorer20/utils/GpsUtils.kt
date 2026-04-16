@@ -23,7 +23,7 @@ object GpsUtils {
 
     // --- GPS smoothing: weighted average of last N readings ---
 
-    const val GPS_SMOOTH_WINDOW = 2  // was 3
+    const val GPS_SMOOTH_WINDOW = 5  // for smoothening
 
     // Most recent reading gets highest weight
     private val locationHistory = ArrayDeque<Location>(SpawnConfig.GPS_SMOOTH_WINDOW)
@@ -66,6 +66,9 @@ object GpsUtils {
     private var lastCheckedTime: Long = 0L
 
     fun isLocationSuspicious(location: Location): Boolean {
+        // Reject poor accuracy readings outright — this is the main jitter fix
+        if (!location.hasAccuracy() || location.accuracy > 20f) return true
+
         val now = System.currentTimeMillis()
         val last = lastCheckedLocation
 
@@ -79,12 +82,11 @@ object GpsUtils {
                 last.latitude, last.longitude,
                 location.latitude, location.longitude
             )
-            // Flag if jumped more than threshold in under 2 seconds
-            val suspicious = elapsedSec < 2.0 &&
-                    jumpMetres > SpawnConfig.GPS_JUMP_THRESHOLD_M
-
-            lastCheckedLocation = location
-            lastCheckedTime = now
+            val suspicious = elapsedSec < 2.0 && jumpMetres > SpawnConfig.GPS_JUMP_THRESHOLD_M
+            if (!suspicious) {          // only update baseline if reading is clean
+                lastCheckedLocation = location
+                lastCheckedTime = now
+            }
             suspicious
         }
     }
