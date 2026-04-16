@@ -283,7 +283,6 @@ class ArCaptureFragment : Fragment() {
             addUpdateListener { anim ->
                 val p = anim.animatedValue as Float
                 reticleFill.scaleX = p
-                reticleFill.scaleY = p
                 // Progress haptic ticks
                 if (p > 0.5f && p < 0.52f) vibrate(30)
                 if (p > 0.8f && p < 0.82f) vibrate(30)

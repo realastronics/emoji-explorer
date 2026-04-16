@@ -4,13 +4,11 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- Camera feed -->
     <TextureView
         android:id="@+id/arSceneView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <!-- Scan line overlay — green horizontal line that sweeps down -->
     <View
         android:id="@+id/scan_line"
         android:layout_width="match_parent"
@@ -18,24 +16,56 @@
         android:background="#AA00FF88"
         android:visibility="gone"/>
 
-    <!-- Corner brackets — top left -->
+    <!-- Subtle grid overlay -->
     <View
-        android:layout_width="40dp"
-        android:layout_height="3dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="120dp"
-        android:layout_marginStart="-60dp"
-        android:background="#00FF88"/>
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/grid_overlay"
+        android:alpha="0.04"/>
 
-    <!-- Emoji floating in AR — large and visible -->
+    <!-- Floating can -->
     <ImageView
         android:id="@+id/iv_can_overlay"
-        android:layout_width="80dp"
-        android:layout_height="139dp"
+        android:layout_width="72dp"
+        android:layout_height="125dp"
         android:layout_gravity="center"
-        android:layout_marginBottom="80dp"
+        android:layout_marginBottom="60dp"
         android:scaleType="fitCenter"
         android:elevation="8dp"/>
+
+    <!-- Corner brackets — now a single FrameLayout centered on the can -->
+    <FrameLayout
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="60dp">
+
+        <View android:layout_width="28dp" android:layout_height="2dp"
+            android:layout_gravity="top|start" android:background="#00FF88"/>
+        <View android:layout_width="2dp" android:layout_height="28dp"
+            android:layout_gravity="top|start" android:background="#00FF88"/>
+        <View android:layout_width="28dp" android:layout_height="2dp"
+            android:layout_gravity="top|end" android:background="#00FF88"/>
+        <View android:layout_width="2dp" android:layout_height="28dp"
+            android:layout_gravity="top|end" android:background="#00FF88"/>
+        <View android:layout_width="28dp" android:layout_height="2dp"
+            android:layout_gravity="bottom|start" android:background="#00FF88"/>
+        <View android:layout_width="2dp" android:layout_height="28dp"
+            android:layout_gravity="bottom|start" android:background="#00FF88"/>
+        <View android:layout_width="28dp" android:layout_height="2dp"
+            android:layout_gravity="bottom|end" android:background="#00FF88"/>
+        <View android:layout_width="2dp" android:layout_height="28dp"
+            android:layout_gravity="bottom|end" android:background="#00FF88"/>
+    </FrameLayout>
+
+    <!-- Reticle ring only — fill is now the progress bar below -->
+    <View
+        android:id="@+id/reticle_ring"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="60dp"
+        android:background="@drawable/reticle_ring"/>
 
     <!-- Top bar -->
     <LinearLayout
@@ -44,199 +74,151 @@
         android:layout_gravity="top"
         android:background="#CC000000"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="10dp"
+        android:gravity="center_vertical"
+        android:elevation="4dp">
 
         <Button
             android:id="@+id/btn_back"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
+            android:layout_height="36dp"
             android:backgroundTint="#333333"
-            android:text="Back"
+            android:text="&#8592; Back"
             android:textColor="#FFFFFF"
-            android:textSize="12sp"/>
+            android:textSize="12sp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"/>
 
         <TextView
             android:id="@+id/tv_ar_hint"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:text="Point camera at the emoji"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"/>
+            android:layout_marginStart="10dp"
+            android:text="Point camera at the can"
+            android:textColor="#CCFFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"/>
 
         <TextView
             android:id="@+id/tv_ar_points"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
+            android:background="@drawable/badge_amber"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:text="10 pts"
             android:textColor="#EF9F27"
-            android:textSize="14sp"
-            android:textStyle="bold"/>
-
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"/>
     </LinearLayout>
 
-    <!-- AR corner frame brackets -->
-
-    <!-- Reticle -->
-    <FrameLayout
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_gravity="center">
-        <View
-            android:id="@+id/reticle_ring"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:background="@drawable/reticle_ring"/>
-        <View
-            android:id="@+id/reticle_fill"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:background="@drawable/reticle_fill"
-            android:scaleX="0"
-            android:scaleY="0"/>
-
-        <FrameLayout
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:layout_gravity="center"
-            android:layout_marginBottom="60dp">
-
-            <!-- Top-left corner -->
-            <View
-                android:layout_width="30dp"
-                android:layout_height="3dp"
-                android:layout_gravity="top|start"
-                android:background="#00FF88" />
-
-            <View
-                android:layout_width="3dp"
-                android:layout_height="30dp"
-                android:layout_gravity="top|start"
-                android:background="#00FF88" />
-
-            <!-- Top-right corner -->
-            <View
-                android:layout_width="30dp"
-                android:layout_height="3dp"
-                android:layout_gravity="top|end"
-                android:background="#00FF88" />
-
-            <View
-                android:layout_width="3dp"
-                android:layout_height="30dp"
-                android:layout_gravity="top|end"
-                android:background="#00FF88" />
-
-            <!-- Bottom-left corner -->
-            <View
-                android:layout_width="30dp"
-                android:layout_height="3dp"
-                android:layout_gravity="bottom|start"
-                android:background="#00FF88" />
-
-            <View
-                android:layout_width="3dp"
-                android:layout_height="30dp"
-                android:layout_gravity="bottom|start"
-                android:background="#00FF88" />
-
-            <!-- Bottom-right corner -->
-            <View
-                android:layout_width="30dp"
-                android:layout_height="3dp"
-                android:layout_gravity="bottom|end"
-                android:background="#00FF88" />
-
-            <View
-                android:layout_width="3dp"
-                android:layout_height="30dp"
-                android:layout_gravity="bottom|end"
-                android:background="#00FF88" />
-
-        </FrameLayout>
-    </FrameLayout>
-
-    <!-- Bottom capture UI -->
-
-    <!-- Success overlay -->
+    <!-- Bottom panel -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="#CC000000"
-        android:gravity="center"
+        android:background="#D0000000"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="28dp"
+        android:elevation="4dp">
+
+        <TextView
+            android:id="@+id/tv_scan_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="6dp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2"
+            android:text="● SCANNING"
+            android:textColor="#00FF88"
+            android:textSize="10sp"/>
 
         <TextView
             android:id="@+id/tv_capture_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="10dp"
             android:text="Hold CAPTURE to catch it!"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp" />
+            android:textColor="#CCFFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"/>
 
-        <!-- Scan status indicator -->
-        <TextView
-            android:id="@+id/tv_scan_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:fontFamily="monospace"
-            android:letterSpacing="0.2"
-            android:text="● SCANNING"
-            android:textColor="#00FF88"
-            android:textSize="11sp" />
+        <!-- Capture progress bar — replaces invisible reticle_fill -->
+        <View
+            android:id="@+id/reticle_fill"
+            android:layout_width="0dp"
+            android:layout_height="4dp"
+            android:layout_marginBottom="14dp"
+            android:background="#48FC38"
+            android:scaleX="0"
+            android:transformPivotX="0dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginBottom="14dp"
+            android:layout_marginTop="-18dp"
+            android:background="#33FFFFFF"
+            android:elevation="0dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center">
 
             <Button
                 android:id="@+id/btn_capture"
-                android:layout_width="180dp"
-                android:layout_height="56dp"
-                android:layout_marginEnd="12dp"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="52dp"
+                android:layout_marginEnd="10dp"
                 android:backgroundTint="#48FC38"
                 android:text="CAPTURE"
                 android:textColor="#000000"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:fontFamily="monospace"/>
 
             <Button
                 android:id="@+id/btn_photo"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
                 android:backgroundTint="#222222"
                 android:text="📷"
-                android:textSize="20sp" />
-
+                android:textSize="18sp"/>
         </LinearLayout>
-
     </LinearLayout>
 
+    <!-- Success overlay -->
     <LinearLayout
         android:id="@+id/capture_success_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#AA000000"
+        android:background="#BB000000"
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone">
 
-        <!-- Inside capture_success_overlay LinearLayout, replace tv_success_emoji with: -->
         <ImageView
             android:id="@+id/iv_success_can"
             android:layout_width="80dp"
             android:layout_height="139dp"
             android:scaleType="fitCenter"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="12dp"/>
 
         <TextView
             android:id="@+id/tv_success_points"
@@ -244,19 +226,19 @@
             android:layout_height="wrap_content"
             android:text="+10 pts!"
             android:textColor="#EF9F27"
-            android:textSize="32sp"
-            android:textStyle="bold"/>
+            android:textSize="34sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:text="CAPTURED"
             android:textColor="#00FF88"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:letterSpacing="0.3"
             android:fontFamily="monospace"/>
-
     </LinearLayout>
 
 </FrameLayout>
