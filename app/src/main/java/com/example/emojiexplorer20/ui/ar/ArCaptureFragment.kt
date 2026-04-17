@@ -82,6 +82,22 @@ class ArCaptureFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? = inflater.inflate(R.layout.fragment_ar, container, false)
 
+    private fun createEmojiDrawable(emoji: String): android.graphics.drawable.BitmapDrawable {
+        val size = 220
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f,
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#CC1A1A2E")
+            })
+        val tp = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 110f
+            textAlign = android.graphics.Paint.Align.CENTER
+        }
+        canvas.drawText(emoji, size / 2f, size / 2f - (tp.descent() + tp.ascent()) / 2f, tp)
+        return android.graphics.drawable.BitmapDrawable(resources, bitmap)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -119,20 +135,27 @@ class ArCaptureFragment : Fragment() {
         targetObject?.let { obj ->
             tvArPoints.text = "${obj.rarity.points} pts"
             tvSuccessPoints.text = "+${obj.rarity.points} pts!"
-            tvArHint.text = "Red Bull ${obj.rarity.label} — hold CAPTURE!"
 
-            val drawableRes = when (obj.emoji) {
-                "blue"   -> R.drawable.blue_can_redbull
-                "yellow" -> R.drawable.yellow_can_redbull
-                "red"    -> R.drawable.red_can_redbull
-                "pink"   -> R.drawable.pink_can_redbull
-                "neon"   -> R.drawable.neon_can_redbull
-                else     -> R.drawable.blue_can_redbull
+            if (obj.isEmojiType()) {
+                // It's a real emoji — render it as text into a bitmap, hide the can
+                tvArHint.text = "Catch the ${obj.emoji} — hold CAPTURE!"
+                ivCanOverlay.setImageDrawable(createEmojiDrawable(obj.emoji))
+                view.findViewById<android.widget.ImageView?>(R.id.iv_success_can)
+                    ?.setImageDrawable(createEmojiDrawable(obj.emoji))
+            } else {
+                tvArHint.text = "Red Bull ${obj.rarity.label} — hold CAPTURE!"
+                val drawableRes = when (obj.emoji) {
+                    "blue"   -> R.drawable.blue_can_redbull
+                    "yellow" -> R.drawable.yellow_can_redbull
+                    "red"    -> R.drawable.red_can_redbull
+                    "pink"   -> R.drawable.pink_can_redbull
+                    "neon"   -> R.drawable.neon_can_redbull
+                    else     -> R.drawable.blue_can_redbull
+                }
+                ivCanOverlay.setImageResource(drawableRes)
+                view.findViewById<android.widget.ImageView?>(R.id.iv_success_can)
+                    ?.setImageResource(drawableRes)
             }
-            ivCanOverlay.setImageResource(drawableRes)
-
-            view.findViewById<android.widget.ImageView?>(R.id.iv_success_can)
-                ?.setImageResource(drawableRes)
         }
 
         startEmojiFloatAnimation()
