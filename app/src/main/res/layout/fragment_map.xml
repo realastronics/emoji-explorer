@@ -329,7 +329,6 @@
             android:textColor="#000000"
             android:textSize="13sp" />
 
-        <!-- LOGOUT BUTTON — clears team prefs and returns to TeamEntry -->
         <Button
             android:id="@+id/btn_logout"
             android:layout_width="match_parent"
@@ -340,5 +339,33 @@
             android:textSize="12sp" />
 
     </LinearLayout>
+
+    <!--
+        RED BULL BANNER OVERLAY
+        Last child = highest z-order in FrameLayout, always on top.
+        Hidden by default; shown every onResume() for 2 s with a pulse animation.
+        clickable/focusable=true blocks accidental taps on the map beneath it.
+    -->
+    <FrameLayout
+        android:id="@+id/banner_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="gone"
+        android:elevation="99dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/iv_map_banner"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:src="@drawable/redbull_banner"
+            android:contentDescription="Red Bull"/>
+
+    </FrameLayout>
 
 </FrameLayout>

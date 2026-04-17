@@ -1,5 +1,7 @@
 package com.example.emojiexplorer20.ui.map
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.location.Location
@@ -17,7 +19,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import android.graphics.drawable.AnimationDrawable
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -64,6 +65,11 @@ class MapFragment : Fragment() {
     private var tvCaptureStats: TextView? = null
     private var tvDetectedCount: TextView? = null
     private var tvClosestDist: TextView? = null
+
+    // Banner views
+    private var bannerOverlay: FrameLayout? = null
+    private var ivMapBanner: ImageView? = null
+    private val bannerHandler = Handler(Looper.getMainLooper())
 
     private var currentScore = 0
     private var teamName = "Team Alpha"
@@ -134,6 +140,8 @@ class MapFragment : Fragment() {
         tvCaptureStats = view.findViewById(R.id.tv_capture_stats)
         tvDetectedCount = view.findViewById(R.id.tv_detected_count)
         tvClosestDist = view.findViewById(R.id.tv_closest_dist)
+        bannerOverlay = view.findViewById(R.id.banner_overlay)
+        ivMapBanner = view.findViewById(R.id.iv_map_banner)
 
         tvTeamName?.text = teamName
         activity?.window?.addFlags(
@@ -156,16 +164,13 @@ class MapFragment : Fragment() {
                 .setTitle("Log Out")
                 .setMessage("Leave the game? Your score is saved.")
                 .setPositiveButton("Log Out") { _, _ ->
-                    // Clear saved team prefs so TeamEntry shows fresh
                     requireContext()
                         .getSharedPreferences("team_prefs", android.content.Context.MODE_PRIVATE)
                         .edit().clear().apply()
-                    // Stop timers before leaving
                     timerRunning = false
                     syncHandler.removeCallbacksAndMessages(null)
                     timerHandler.removeCallbacksAndMessages(null)
                     radarHandler.removeCallbacksAndMessages(null)
-                    // Go back to TeamEntryActivity
                     val intent = Intent(requireContext(), TeamEntryActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
@@ -173,28 +178,20 @@ class MapFragment : Fragment() {
                 .setNegativeButton("Cancel", null)
                 .show()
         }
-        // ──────────────────────────────────────────────────────────────────────
 
         btnOpenAr?.setOnClickListener {
             nearestObject?.let { obj ->
                 if (obj.isCapturedByTeam(teamId)) {
-                    nearestObject = null
-                    btnOpenAr?.visibility = View.GONE
-                    return@setOnClickListener
+                    nearestObject = null; btnOpenAr?.visibility = View.GONE; return@setOnClickListener
                 }
                 if (DynamicSpawnManager.isCaptured(obj.id)) {
-                    nearestObject = null
-                    btnOpenAr?.visibility = View.GONE
-                    return@setOnClickListener
+                    nearestObject = null; btnOpenAr?.visibility = View.GONE; return@setOnClickListener
                 }
                 if (localCapturedIds.contains(obj.id)) {
-                    nearestObject = null
-                    btnOpenAr?.visibility = View.GONE
-                    return@setOnClickListener
+                    nearestObject = null; btnOpenAr?.visibility = View.GONE; return@setOnClickListener
                 }
 
                 val arFragment = ArCaptureFragment.newInstance(obj.id, teamId)
-
                 arFragment.onCaptureSuccess = { capturedObj ->
                     capturedObj.captureForTeam(teamId)
                     localCapturedIds.add(capturedObj.id)
@@ -203,7 +200,6 @@ class MapFragment : Fragment() {
                     addPoints(capturedObj.rarity.points)
                     updateCaptureStats()
                     nearestObject = null
-
                     activity?.runOnUiThread {
                         btnOpenAr?.visibility = View.GONE
                         if (capturedObj.id.startsWith("dyn_") || capturedObj.id.startsWith("welcome_")) {
@@ -211,16 +207,13 @@ class MapFragment : Fragment() {
                             dynamicMarkers[capturedObj.id]?.let { mapView.overlays.remove(it) }
                             dynamicMarkers.remove(capturedObj.id)
                         } else {
-                            val markerToRemove = spawnMarkers.firstOrNull { it.id == capturedObj.id }
-                            markerToRemove?.let {
-                                mapView.overlays.remove(it)
-                                spawnMarkers.remove(it)
+                            spawnMarkers.firstOrNull { it.id == capturedObj.id }?.let {
+                                mapView.overlays.remove(it); spawnMarkers.remove(it)
                             }
                         }
                         mapView.invalidate()
                     }
                 }
-
                 parentFragmentManager.beginTransaction()
                     .replace(R.id.fragment_container, arFragment)
                     .addToBackStack("ar_capture")
@@ -230,22 +223,19 @@ class MapFragment : Fragment() {
 
         view.findViewById<Button>(R.id.btn_leaderboard).setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .replace(
-                    R.id.fragment_container,
-                    LeaderboardFragment.newInstance(teamId, teamName)
-                )
+                .replace(R.id.fragment_container, LeaderboardFragment.newInstance(teamId, teamName))
                 .addToBackStack("leaderboard")
                 .commit()
         }
 
         view.findViewById<View>(R.id.btn_compass)?.setOnClickListener {
             compassModeOn = !compassModeOn
-            if (compassModeOn) {
-                Toast.makeText(requireContext(), "Compass mode ON", Toast.LENGTH_SHORT).show()
-            } else {
-                mapView.mapOrientation = 0f
-                Toast.makeText(requireContext(), "North-up restored", Toast.LENGTH_SHORT).show()
-            }
+            Toast.makeText(
+                requireContext(),
+                if (compassModeOn) "Compass mode ON" else "North-up restored",
+                Toast.LENGTH_SHORT
+            ).show()
+            if (!compassModeOn) mapView.mapOrientation = 0f
         }
 
         view.findViewById<View>(R.id.btn_recenter)?.setOnClickListener {
@@ -257,16 +247,64 @@ class MapFragment : Fragment() {
         }
     }
 
-    // --- Dynamic spawn handling ---
+    // ── RED BULL BANNER — shown every time the map becomes visible ────────────
+    private fun showBanner() {
+        val overlay = bannerOverlay ?: return
+        val img = ivMapBanner ?: return
 
+        // Cancel any in-flight dismiss
+        bannerHandler.removeCallbacksAndMessages(null)
+
+        // Reset state
+        overlay.alpha = 1f
+        img.scaleX = 1f
+        img.scaleY = 1f
+        overlay.visibility = View.VISIBLE
+
+        // Pulse animation: image scales 1.0 → 1.08 → 1.0, repeating
+        val scaleUp = ObjectAnimator.ofFloat(img, "scaleX", 1f, 1.08f).apply { duration = 400 }
+        val scaleUpY = ObjectAnimator.ofFloat(img, "scaleY", 1f, 1.08f).apply { duration = 400 }
+        val scaleDown = ObjectAnimator.ofFloat(img, "scaleX", 1.08f, 1f).apply { duration = 400 }
+        val scaleDownY = ObjectAnimator.ofFloat(img, "scaleY", 1.08f, 1f).apply { duration = 400 }
+
+        val pulse = AnimatorSet().apply {
+            play(scaleUp).with(scaleUpY)
+            play(scaleDown).with(scaleDownY).after(scaleUp)
+        }
+
+        // Repeat the pulse by chaining it manually
+        var pulseCount = 0
+        fun schedulePulse() {
+            if (!isAdded || overlay.visibility != View.VISIBLE) return
+            pulse.start()
+            pulseCount++
+            // Each full pulse = 800ms; we have ~2000ms total so run ~2 pulses then stop
+            if (pulseCount < 3) bannerHandler.postDelayed({ schedulePulse() }, 800L)
+        }
+        schedulePulse()
+
+        // After 2 seconds: fade the whole overlay out over 400ms, then hide it
+        bannerHandler.postDelayed({
+            if (!isAdded) return@postDelayed
+            ObjectAnimator.ofFloat(overlay, "alpha", 1f, 0f).apply {
+                duration = 400
+                addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        overlay.visibility = View.GONE
+                        overlay.alpha = 1f   // reset for next time
+                    }
+                })
+                start()
+            }
+        }, 2000L)
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // --- Dynamic spawn handling ---
     private fun handleDynamicSpawns(lat: Double, lng: Double) {
         val newSpawns = DynamicSpawnManager.onLocationUpdate(lat, lng)
         if (newSpawns.isEmpty()) return
-        activity?.runOnUiThread {
-            newSpawns.forEach { spawn ->
-                addDynamicMarker(spawn)
-            }
-        }
+        activity?.runOnUiThread { newSpawns.forEach { addDynamicMarker(it) } }
     }
 
     private fun addDynamicMarker(obj: EmojiObject) {
@@ -286,14 +324,13 @@ class MapFragment : Fragment() {
         mapView.invalidate()
     }
 
-    // --- Marker management ---
     private fun refreshSpawnMarkers() {
         if (!::mapView.isInitialized) return
         try {
             spawnMarkers.forEach { mapView.overlays.remove(it) }
             spawnMarkers.clear()
             setupSpawnMarkers()
-        } catch (e: Exception) { /* retry on next resume */ }
+        } catch (e: Exception) { }
     }
 
     private fun updateCaptureStats() {
@@ -301,11 +338,9 @@ class MapFragment : Fragment() {
         val dynamicCaptured = capturedEmojiList.count {
             it.id.startsWith("dyn_") || it.id.startsWith("welcome_")
         }
-        val staticCaptured = capturedEmojis - dynamicCaptured
-        tvCaptureStats?.text = "$staticCaptured / $staticTotal"
+        tvCaptureStats?.text = "${capturedEmojis - dynamicCaptured} / $staticTotal"
     }
 
-    // --- Score sync ---
     private fun startScoreSync() {
         syncHandler.post(object : Runnable {
             override fun run() {
@@ -319,7 +354,6 @@ class MapFragment : Fragment() {
         })
     }
 
-    // --- Session timer ---
     private fun startSessionTimer() {
         if (timerRunning) return
         timerRunning = true
@@ -327,14 +361,10 @@ class MapFragment : Fragment() {
             override fun run() {
                 if (!timerRunning || !isAdded) return
                 sessionTimeLeftMs -= 1000
-                if (sessionTimeLeftMs <= 0) {
-                    timerRunning = false
-                    showSessionEnd()
-                    return
-                }
-                val minutes = sessionTimeLeftMs / 60000
-                val seconds = (sessionTimeLeftMs % 60000) / 1000
-                tvTeamName?.text = "$teamName  |  %02d:%02d".format(minutes, seconds)
+                if (sessionTimeLeftMs <= 0) { timerRunning = false; showSessionEnd(); return }
+                val m = sessionTimeLeftMs / 60000
+                val s = (sessionTimeLeftMs % 60000) / 1000
+                tvTeamName?.text = "$teamName  |  %02d:%02d".format(m, s)
                 timerHandler.postDelayed(this, 1000L)
             }
         })
@@ -348,28 +378,20 @@ class MapFragment : Fragment() {
             .setCancelable(false)
             .setPositiveButton("See Leaderboard") { _, _ ->
                 parentFragmentManager.beginTransaction()
-                    .replace(
-                        R.id.fragment_container,
-                        LeaderboardFragment.newInstance(teamId, teamName)
-                    )
+                    .replace(R.id.fragment_container, LeaderboardFragment.newInstance(teamId, teamName))
                     .commit()
-            }
-            .show()
+            }.show()
     }
 
-    // --- Map setup ---
     private fun setupMap() {
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
         mapView.controller.setZoom(18.0)
-        val bmlCenter = GeoPoint(28.2468, 76.8128)
-        mapView.controller.setCenter(bmlCenter)
+        mapView.controller.setCenter(GeoPoint(28.2468, 76.8128))
         mapView.overlayManager.tilesOverlay.setColorFilter(getF1ColorFilter())
         mapView.overlays.add(radarOverlay)
 
-        myLocationOverlay = MyLocationNewOverlay(
-            GpsMyLocationProvider(requireContext()), mapView
-        )
+        myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(requireContext()), mapView)
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
 
@@ -386,49 +408,37 @@ class MapFragment : Fragment() {
 
     private fun getF1ColorFilter(): android.graphics.ColorMatrixColorFilter {
         val matrix = android.graphics.ColorMatrix(floatArrayOf(
-            0.25f, 0f,    0f,    0f,  10f,
-            0f,    0.28f, 0f,    0f,  10f,
-            0f,    0f,    0.40f, 0f,  25f,
-            0f,    0f,    0f,    1f,   0f
+            0.25f, 0f, 0f, 0f, 10f,
+            0f, 0.28f, 0f, 0f, 10f,
+            0f, 0f, 0.40f, 0f, 25f,
+            0f, 0f, 0f, 1f, 0f
         ))
         return android.graphics.ColorMatrixColorFilter(matrix)
     }
 
     private fun createPlayerSpriteBitmap(): android.graphics.Bitmap {
         val size = 120
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            size, size, android.graphics.Bitmap.Config.ARGB_8888
-        )
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        paint.color = android.graphics.Color.parseColor("#2200FFCC")
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-        paint.color = android.graphics.Color.parseColor("#4400FFCC")
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 10f, paint)
-        paint.color = android.graphics.Color.parseColor("#6600FFCC")
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 22f, paint)
-        paint.color = android.graphics.Color.parseColor("#CC00FFCC")
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 36f, paint)
+        listOf("#2200FFCC", "#4400FFCC", "#6600FFCC", "#CC00FFCC").forEachIndexed { i, c ->
+            paint.color = android.graphics.Color.parseColor(c)
+            canvas.drawCircle(size / 2f, size / 2f, size / 2f - i * 12f, paint)
+        }
         paint.color = android.graphics.Color.WHITE
         paint.style = android.graphics.Paint.Style.STROKE
         paint.strokeWidth = 3f
         canvas.drawCircle(size / 2f, size / 2f, size / 2f - 36f, paint)
         paint.style = android.graphics.Paint.Style.FILL
-        paint.color = android.graphics.Color.WHITE
         canvas.drawCircle(size / 2f, size / 2f, 7f, paint)
-        val arrowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        arrowPaint.color = android.graphics.Color.WHITE
-        val path = android.graphics.Path()
-        path.moveTo(size / 2f, 4f)
-        path.lineTo(size / 2f - 10f, 22f)
-        path.lineTo(size / 2f, 16f)
-        path.lineTo(size / 2f + 10f, 22f)
-        path.close()
-        canvas.drawPath(path, arrowPaint)
+        val path = android.graphics.Path().apply {
+            moveTo(size / 2f, 4f); lineTo(size / 2f - 10f, 22f)
+            lineTo(size / 2f, 16f); lineTo(size / 2f + 10f, 22f); close()
+        }
+        canvas.drawPath(path, paint)
         return bitmap
     }
 
-    // --- Radar animation ---
     private fun startRadarAnimation() {
         radarHandler.post(object : Runnable {
             override fun run() {
@@ -437,10 +447,9 @@ class MapFragment : Fragment() {
                 radarAlpha1 = (200 * (1f - radarRadius1 / 160f)).toInt().coerceIn(0, 200)
                 radarRadius2 = (radarRadius2 + 3f) % 160f
                 radarAlpha2 = (200 * (1f - radarRadius2 / 160f)).toInt().coerceIn(0, 200)
-                val playerLoc = myLocationOverlay.myLocation
-                if (playerLoc != null) {
-                    val point = mapView.projection.toPixels(playerLoc, null)
-                    radarOverlay.updatePosition(point.x.toFloat(), point.y.toFloat())
+                myLocationOverlay.myLocation?.let {
+                    val pt = mapView.projection.toPixels(it, null)
+                    radarOverlay.updatePosition(pt.x.toFloat(), pt.y.toFloat())
                 }
                 radarOverlay.updateAnimation(radarRadius1, radarAlpha1, radarRadius2, radarAlpha2)
                 mapView.invalidate()
@@ -449,7 +458,6 @@ class MapFragment : Fragment() {
         })
     }
 
-    // --- Static spawn markers ---
     private fun setupSpawnMarkers() {
         SpawnConfig.SPAWN_POINTS.forEach { obj ->
             if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
@@ -467,81 +475,56 @@ class MapFragment : Fragment() {
         mapView.invalidate()
     }
 
-    private fun getCanDrawableRes(canColor: String): Int = when (canColor) {
-        "blue"   -> R.drawable.blue_can_redbull
-        "yellow" -> R.drawable.yellow_can_redbull
-        "red"    -> R.drawable.red_can_redbull
-        "pink"   -> R.drawable.pink_can_redbull
-        "neon"   -> R.drawable.neon_can_redbull
-        else     -> R.drawable.blue_can_redbull
+    private fun getCanDrawableRes(canColor: String) = when (canColor) {
+        "blue" -> R.drawable.blue_can_redbull; "yellow" -> R.drawable.yellow_can_redbull
+        "red"  -> R.drawable.red_can_redbull;  "pink"   -> R.drawable.pink_can_redbull
+        "neon" -> R.drawable.neon_can_redbull; else     -> R.drawable.blue_can_redbull
     }
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
-        if (obj.isEmojiType()) {
-            return createEmojiTextMarker(obj.emoji)
-        }
+        if (obj.isEmojiType()) return createEmojiTextMarker(obj.emoji)
         val canSize = 100
         return try {
-            val src = android.graphics.BitmapFactory.decodeResource(
-                resources, getCanDrawableRes(obj.emoji)
-            ) ?: throw Exception("null bitmap")
+            val src = android.graphics.BitmapFactory.decodeResource(resources, getCanDrawableRes(obj.emoji))
+                ?: throw Exception("null bitmap")
             android.graphics.drawable.BitmapDrawable(
-                resources,
-                android.graphics.Bitmap.createScaledBitmap(src, canSize, canSize, true)
+                resources, android.graphics.Bitmap.createScaledBitmap(src, canSize, canSize, true)
             )
-        } catch (e: Exception) {
-            createColorCircleMarker(obj.emoji, canSize)
-        }
+        } catch (e: Exception) { createColorCircleMarker(obj.emoji, canSize) }
     }
 
     private fun createEmojiTextMarker(emoji: String): android.graphics.drawable.BitmapDrawable {
         val size = 90
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            size, size, android.graphics.Bitmap.Config.ARGB_8888
-        )
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
-        val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.parseColor("#CC1A1A2E")
-            style = android.graphics.Paint.Style.FILL
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f,
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#CC1A1A2E")
+            })
+        val tp = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 42f; textAlign = android.graphics.Paint.Align.CENTER
         }
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint)
-        val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = 42f
-            textAlign = android.graphics.Paint.Align.CENTER
-        }
-        val yPos = size / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
-        canvas.drawText(emoji, size / 2f, yPos, textPaint)
+        canvas.drawText(emoji, size / 2f, size / 2f - (tp.descent() + tp.ascent()) / 2f, tp)
         return android.graphics.drawable.BitmapDrawable(resources, bitmap)
     }
 
-    private fun createColorCircleMarker(
-        canColor: String,
-        size: Int
-    ): android.graphics.drawable.BitmapDrawable {
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            size, size, android.graphics.Bitmap.Config.ARGB_8888
-        )
+    private fun createColorCircleMarker(canColor: String, size: Int): android.graphics.drawable.BitmapDrawable {
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
-        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = when (canColor) {
-                "blue"   -> android.graphics.Color.parseColor("#378ADD")
-                "yellow" -> android.graphics.Color.parseColor("#EF9F27")
-                "red"    -> android.graphics.Color.parseColor("#E8002D")
-                "pink"   -> android.graphics.Color.parseColor("#D4537E")
-                "neon"   -> android.graphics.Color.parseColor("#53E0CD")
-                else     -> android.graphics.Color.GRAY
-            }
-        }
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f,
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor(when (canColor) {
+                    "blue" -> "#378ADD"; "yellow" -> "#EF9F27"; "red" -> "#E8002D"
+                    "pink" -> "#D4537E"; "neon"   -> "#53E0CD"; else  -> "#888888"
+                })
+            })
         return android.graphics.drawable.BitmapDrawable(resources, bitmap)
     }
 
-    // --- Location updates ---
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY, 2000L
-        ).setMinUpdateIntervalMillis(1000L).build()
+        val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
+            .setMinUpdateIntervalMillis(1000L).build()
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
@@ -553,57 +536,42 @@ class MapFragment : Fragment() {
                     if (!firstLocationReceived) {
                         firstLocationReceived = true
                         val welcome = DynamicSpawnManager.spawnWelcomeCan(location.latitude, location.longitude)
-                        activity?.runOnUiThread { addDynamicMarker(welcome) }
                         activity?.runOnUiThread {
+                            addDynamicMarker(welcome)
                             Toast.makeText(requireContext(), "A Red Bull appeared nearby!", Toast.LENGTH_LONG).show()
                         }
                     }
 
-                    // Single call — removed the accidental duplicate
                     handleDynamicSpawns(location.latitude, location.longitude)
                     updateProximity(location)
 
                     if (compassModeOn && raw.hasBearing()) {
                         mapView.mapOrientation = -raw.bearing
-                        view?.findViewById<TextView>(R.id.tv_compass_arrow)
-                            ?.rotation = raw.bearing
+                        view?.findViewById<TextView>(R.id.tv_compass_arrow)?.rotation = raw.bearing
                     }
                 }
             }
         }
-        fusedLocationClient.requestLocationUpdates(
-            locationRequest, locationCallback, Looper.getMainLooper()
-        )
+        fusedLocationClient.requestLocationUpdates(req, locationCallback, Looper.getMainLooper())
     }
 
-    // --- Proximity detection ---
     private fun updateProximity(location: Location) {
         var closestDist = Double.MAX_VALUE
         var closestObj: EmojiObject? = null
         var detectedCount = 0
 
-        val allObjects = SpawnConfig.ALL_OBJECTS + DynamicSpawnManager.dynamicSpawns
-        allObjects.forEach { obj ->
+        (SpawnConfig.ALL_OBJECTS + DynamicSpawnManager.dynamicSpawns).forEach { obj ->
             if (obj.isCapturedByTeam(teamId)) return@forEach
             if (DynamicSpawnManager.isCaptured(obj.id)) return@forEach
             if (localCapturedIds.contains(obj.id)) return@forEach
-            val dist = GpsUtils.distanceMetres(
-                location.latitude, location.longitude,
-                obj.lat, obj.lng
-            )
+            val dist = GpsUtils.distanceMetres(location.latitude, location.longitude, obj.lat, obj.lng)
             if (dist <= 100.0) detectedCount++
-            if (dist < closestDist) {
-                closestDist = dist
-                closestObj = obj
-            }
+            if (dist < closestDist) { closestDist = dist; closestObj = obj }
         }
 
         nearestObject = closestObj
-
         tvDetectedCount?.text = "DETECTED: $detectedCount"
-        tvClosestDist?.text = if (closestDist < Double.MAX_VALUE) {
-            "Closest: ${closestDist.toInt()}m"
-        } else "Closest: --"
+        tvClosestDist?.text = if (closestDist < Double.MAX_VALUE) "Closest: ${closestDist.toInt()}m" else "Closest: --"
 
         when {
             closestDist <= SpawnConfig.AR_TRIGGER_RADIUS_M -> {
@@ -615,53 +583,39 @@ class MapFragment : Fragment() {
             closestDist <= SpawnConfig.PROXIMITY_RADIUS_M -> {
                 tvNearestHint?.text = "Can nearby — ${closestDist.toInt()}m — keep moving!"
                 btnOpenAr?.visibility = View.GONE
-                proximityRing?.clearAnimation()
-                proximityRing?.visibility = View.GONE
+                proximityRing?.clearAnimation(); proximityRing?.visibility = View.GONE
                 closestObj?.let { updateDirectionArrow(location, it) }
             }
             closestDist <= 100.0 -> {
                 tvNearestHint?.text = "Getting warmer... ${closestDist.toInt()}m"
                 btnOpenAr?.visibility = View.GONE
-                proximityRing?.clearAnimation()
-                proximityRing?.visibility = View.GONE
+                proximityRing?.clearAnimation(); proximityRing?.visibility = View.GONE
                 closestObj?.let { updateDirectionArrow(location, it) }
             }
             else -> {
                 tvNearestHint?.text = "Walk to find Red Bull cans"
                 btnOpenAr?.visibility = View.GONE
-                proximityRing?.clearAnimation()
-                proximityRing?.visibility = View.GONE
+                proximityRing?.clearAnimation(); proximityRing?.visibility = View.GONE
                 arrowContainer?.visibility = View.GONE
             }
         }
     }
 
     private fun updateDirectionArrow(location: Location, target: EmojiObject) {
-        val bearing = GpsUtils.bearingTo(
-            location.latitude, location.longitude,
-            target.lat, target.lng
-        )
-        val dist = GpsUtils.distanceMetres(
-            location.latitude, location.longitude,
-            target.lat, target.lng
-        ).toInt()
+        val bearing = GpsUtils.bearingTo(location.latitude, location.longitude, target.lat, target.lng)
+        val dist = GpsUtils.distanceMetres(location.latitude, location.longitude, target.lat, target.lng).toInt()
         arrowContainer?.visibility = View.VISIBLE
         tvDirectionArrow?.rotation = bearing
-        tvDirectionDist?.text = if (dist >= 1000) {
-            "${dist / 1000}.${(dist % 1000) / 100}km"
-        } else "${dist}m"
+        tvDirectionDist?.text = if (dist >= 1000) "${dist / 1000}.${(dist % 1000) / 100}km" else "${dist}m"
     }
 
     private fun showProximityPulse() {
         val ring = proximityRing ?: return
         if (ring.animation != null) return
         ring.visibility = View.VISIBLE
-        val pulse = AlphaAnimation(1.0f, 0.2f).apply {
-            duration = 800
-            repeatMode = Animation.REVERSE
-            repeatCount = Animation.INFINITE
-        }
-        ring.startAnimation(pulse)
+        ring.startAnimation(AlphaAnimation(1.0f, 0.2f).apply {
+            duration = 800; repeatMode = Animation.REVERSE; repeatCount = Animation.INFINITE
+        })
     }
 
     fun addPoints(points: Int) {
@@ -680,12 +634,17 @@ class MapFragment : Fragment() {
             .forEach { addDynamicMarker(it) }
         if (sessionTimeLeftMs > 0) startSessionTimer()
         lastLocation?.let { updateProximity(it) }
+
+        // ── Show Red Bull banner every time the map screen opens ──────────────
+        showBanner()
     }
 
     override fun onPause() {
         super.onPause()
         timerRunning = false
         mapView.onPause()
+        bannerHandler.removeCallbacksAndMessages(null)
+        bannerOverlay?.visibility = View.GONE
         if (::locationCallback.isInitialized) {
             fusedLocationClient.removeLocationUpdates(locationCallback)
         }
@@ -695,9 +654,7 @@ class MapFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        activity?.window?.clearFlags(
-            android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-        )
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onDestroyView()
         GpsUtils.clearHistory()
         DynamicSpawnManager.reset()
