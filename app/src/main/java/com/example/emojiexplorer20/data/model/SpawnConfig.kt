@@ -46,8 +46,8 @@ object SpawnConfig {
 //        EmojiObject("sp_21", 28.2476706, 76.8132775, "🎮", EmojiObject.Rarity.EMOJI),
 //        // Random Spot
 //        EmojiObject("sp_22", 28.2469264, 76.8134655, "⚡", EmojiObject.Rarity.EMOJI),
-//        // Workshop Labs
-//        EmojiObject("sp_23", 28.2463785, 76.8134441, "💥", EmojiObject.Rarity.EMOJI),
+        // Workshop Labs
+        EmojiObject("sp_23", 28.2463785, 76.8134441, "💥", EmojiObject.Rarity.EMOJI),
 //        // Forest
 //        EmojiObject("sp_24", 28.2472185, 76.8119451, "\uD83C\uDFCE\uFE0F", EmojiObject.Rarity.EMOJI),
 //        // Gate of Wrong Decisions
@@ -60,8 +60,8 @@ object SpawnConfig {
 //        EmojiObject("sp_28", 28.2467618, 76.8127393, "♿", EmojiObject.Rarity.EMOJI),
 //        // United Stop
 //        EmojiObject("sp_29", 28.2484731, 76.8119169, "🚌", EmojiObject.Rarity.EMOJI),
-//        // Khudai Ho Gayi
-//        EmojiObject("sp_30", 28.2471898, 76.8126981, "⛏️", EmojiObject.Rarity.EMOJI),
+        // Khudai Ho Gayi
+        EmojiObject("sp_30", 28.2471898, 76.8126981, "⛏️", EmojiObject.Rarity.EMOJI),
 //        // Best Sofas
 //        EmojiObject("sp_32", 28.2472465, 76.8143725, "🛋️", EmojiObject.Rarity.EMOJI),
 //        // Amphitheatre
