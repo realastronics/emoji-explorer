@@ -5,12 +5,11 @@ data class EmojiObject(
     val lat: Double,
     val lng: Double,
     val emoji: String,
-    // "blue" | "yellow" | "red" | "pink" | "neon" = cans
-    // any emoji string like "🔥" "⚡" "🎯" = emoji collectible
     val rarity: Rarity,
     var isCaptured: Boolean = false,
     val respawnDelayMs: Long = 120_000L,
-    val capturedByTeams: MutableSet<String> = mutableSetOf()
+    val capturedByTeams: MutableSet<String> = mutableSetOf(),
+    val spawnedAtMs: Long = 0L
 ) {
     fun isCapturedByTeam(teamId: String) = capturedByTeams.contains(teamId)
     fun captureForTeam(teamId: String) { capturedByTeams.add(teamId) }

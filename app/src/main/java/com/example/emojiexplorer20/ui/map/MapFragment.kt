@@ -151,7 +151,7 @@ class MapFragment : Fragment() {
         DynamicSpawnManager.reset()
 
         setupMap()
-        setupSpawnMarkers()
+        // No location yet on first create — markers will appear on first GPS fix via updateProximity
         startLocationUpdates()
         startScoreSync()
         startSessionTimer()
@@ -252,38 +252,32 @@ class MapFragment : Fragment() {
         val overlay = bannerOverlay ?: return
         val img = ivMapBanner ?: return
 
-        // Cancel any in-flight dismiss
         bannerHandler.removeCallbacksAndMessages(null)
 
-        // Reset state
         overlay.alpha = 1f
         img.scaleX = 1f
         img.scaleY = 1f
         overlay.visibility = View.VISIBLE
 
-        // Pulse animation: image scales 1.0 → 1.08 → 1.0, repeating
-        val scaleUp = ObjectAnimator.ofFloat(img, "scaleX", 1f, 1.08f).apply { duration = 400 }
-        val scaleUpY = ObjectAnimator.ofFloat(img, "scaleY", 1f, 1.08f).apply { duration = 400 }
+        val scaleUp   = ObjectAnimator.ofFloat(img, "scaleX", 1f, 1.08f).apply { duration = 400 }
+        val scaleUpY  = ObjectAnimator.ofFloat(img, "scaleY", 1f, 1.08f).apply { duration = 400 }
         val scaleDown = ObjectAnimator.ofFloat(img, "scaleX", 1.08f, 1f).apply { duration = 400 }
-        val scaleDownY = ObjectAnimator.ofFloat(img, "scaleY", 1.08f, 1f).apply { duration = 400 }
+        val scaleDownY= ObjectAnimator.ofFloat(img, "scaleY", 1.08f, 1f).apply { duration = 400 }
 
         val pulse = AnimatorSet().apply {
             play(scaleUp).with(scaleUpY)
             play(scaleDown).with(scaleDownY).after(scaleUp)
         }
 
-        // Repeat the pulse by chaining it manually
         var pulseCount = 0
         fun schedulePulse() {
             if (!isAdded || overlay.visibility != View.VISIBLE) return
             pulse.start()
             pulseCount++
-            // Each full pulse = 800ms; we have ~2000ms total so run ~2 pulses then stop
             if (pulseCount < 3) bannerHandler.postDelayed({ schedulePulse() }, 800L)
         }
         schedulePulse()
 
-        // After 2 seconds: fade the whole overlay out over 400ms, then hide it
         bannerHandler.postDelayed({
             if (!isAdded) return@postDelayed
             ObjectAnimator.ofFloat(overlay, "alpha", 1f, 0f).apply {
@@ -291,16 +285,15 @@ class MapFragment : Fragment() {
                 addListener(object : android.animation.AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
                         overlay.visibility = View.GONE
-                        overlay.alpha = 1f   // reset for next time
+                        overlay.alpha = 1f
                     }
                 })
                 start()
             }
         }, 2000L)
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
-    // --- Dynamic spawn handling ---
+    // ── Dynamic spawn handling ────────────────────────────────────────────────
     private fun handleDynamicSpawns(lat: Double, lng: Double) {
         val newSpawns = DynamicSpawnManager.onLocationUpdate(lat, lng)
         if (newSpawns.isEmpty()) return
@@ -311,6 +304,12 @@ class MapFragment : Fragment() {
         if (!::mapView.isInitialized) return
         if (localCapturedIds.contains(obj.id)) return
         if (DynamicSpawnManager.isCaptured(obj.id)) return
+
+        // Only show marker if player is within visibility radius
+        val loc = lastLocation ?: return
+        val dist = GpsUtils.distanceMetres(loc.latitude, loc.longitude, obj.lat, obj.lng)
+        if (dist > SpawnConfig.VISIBILITY_RADIUS_M) return
+
         dynamicMarkers[obj.id]?.let { mapView.overlays.remove(it) }
         val marker = Marker(mapView).apply {
             position = GeoPoint(obj.lat, obj.lng)
@@ -324,13 +323,39 @@ class MapFragment : Fragment() {
         mapView.invalidate()
     }
 
-    private fun refreshSpawnMarkers() {
+    // ── Called on resume and after captures — re-evaluates which static
+    //    markers should be visible given the current known location.
+    //    If no location fix yet, clears stale markers and waits for GPS. ───────
+    private fun refreshVisibleMarkers(location: Location? = lastLocation) {
         if (!::mapView.isInitialized) return
-        try {
-            spawnMarkers.forEach { mapView.overlays.remove(it) }
-            spawnMarkers.clear()
-            setupSpawnMarkers()
-        } catch (e: Exception) { }
+
+        // Always clear old static markers first
+        spawnMarkers.forEach { mapView.overlays.remove(it) }
+        spawnMarkers.clear()
+
+        // No GPS fix yet — nothing to show, markers appear on first location update
+        if (location == null) {
+            mapView.invalidate()
+            return
+        }
+
+        SpawnConfig.SPAWN_POINTS.forEach { obj ->
+            if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
+            val dist = GpsUtils.distanceMetres(location.latitude, location.longitude, obj.lat, obj.lng)
+            if (dist > SpawnConfig.VISIBILITY_RADIUS_M) return@forEach
+
+            val marker = Marker(mapView).apply {
+                id = obj.id
+                position = GeoPoint(obj.lat, obj.lng)
+                title = "Red Bull ${obj.rarity.label}"
+                snippet = "${obj.rarity.points} pts"
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                icon = createEmojiMarker(obj)
+            }
+            mapView.overlays.add(marker)
+            spawnMarkers.add(marker)
+        }
+        mapView.invalidate()
     }
 
     private fun updateCaptureStats() {
@@ -458,27 +483,13 @@ class MapFragment : Fragment() {
         })
     }
 
-    private fun setupSpawnMarkers() {
-        SpawnConfig.SPAWN_POINTS.forEach { obj ->
-            if (obj.isCapturedByTeam(teamId) || localCapturedIds.contains(obj.id)) return@forEach
-            val marker = Marker(mapView).apply {
-                id = obj.id
-                position = GeoPoint(obj.lat, obj.lng)
-                title = "Red Bull ${obj.rarity.label}"
-                snippet = "${obj.rarity.points} pts"
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                icon = createEmojiMarker(obj)
-            }
-            mapView.overlays.add(marker)
-            spawnMarkers.add(marker)
-        }
-        mapView.invalidate()
-    }
-
     private fun getCanDrawableRes(canColor: String) = when (canColor) {
-        "blue" -> R.drawable.blue_can_redbull; "yellow" -> R.drawable.yellow_can_redbull
-        "red"  -> R.drawable.red_can_redbull;  "pink"   -> R.drawable.pink_can_redbull
-        "neon" -> R.drawable.neon_can_redbull; else     -> R.drawable.blue_can_redbull
+        "blue"   -> R.drawable.blue_can_redbull
+        "yellow" -> R.drawable.yellow_can_redbull
+        "red"    -> R.drawable.red_can_redbull
+        "pink"   -> R.drawable.pink_can_redbull
+        "neon"   -> R.drawable.neon_can_redbull
+        else     -> R.drawable.blue_can_redbull
     }
 
     private fun createEmojiMarker(obj: EmojiObject): android.graphics.drawable.Drawable {
@@ -514,8 +525,12 @@ class MapFragment : Fragment() {
         canvas.drawCircle(size / 2f, size / 2f, size / 2f,
             android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                 color = android.graphics.Color.parseColor(when (canColor) {
-                    "blue" -> "#378ADD"; "yellow" -> "#EF9F27"; "red" -> "#E8002D"
-                    "pink" -> "#D4537E"; "neon"   -> "#53E0CD"; else  -> "#888888"
+                    "blue"   -> "#378ADD"
+                    "yellow" -> "#EF9F27"
+                    "red"    -> "#E8002D"
+                    "pink"   -> "#D4537E"
+                    "neon"   -> "#53E0CD"
+                    else     -> "#888888"
                 })
             })
         return android.graphics.drawable.BitmapDrawable(resources, bitmap)
@@ -573,6 +588,9 @@ class MapFragment : Fragment() {
         tvDetectedCount?.text = "DETECTED: $detectedCount"
         tvClosestDist?.text = if (closestDist < Double.MAX_VALUE) "Closest: ${closestDist.toInt()}m" else "Closest: --"
 
+        // Refresh which static markers are visible on this location tick
+        refreshVisibleMarkers(location)
+
         when {
             closestDist <= SpawnConfig.AR_TRIGGER_RADIUS_M -> {
                 tvNearestHint?.text = "Red Bull in range — tap CAPTURE!"
@@ -628,14 +646,13 @@ class MapFragment : Fragment() {
         mapView.onResume()
         nearestObject = null
         btnOpenAr?.visibility = View.GONE
-        refreshSpawnMarkers()
+        // Refresh markers with current location (null-safe — no-ops if no fix yet)
+        refreshVisibleMarkers()
         DynamicSpawnManager.dynamicSpawns
             .filter { !localCapturedIds.contains(it.id) && !DynamicSpawnManager.isCaptured(it.id) }
             .forEach { addDynamicMarker(it) }
         if (sessionTimeLeftMs > 0) startSessionTimer()
         lastLocation?.let { updateProximity(it) }
-
-        // ── Show Red Bull banner every time the map screen opens ──────────────
         showBanner()
     }
 

@@ -84,11 +84,7 @@ object DynamicSpawnManager {
         // Expire dynamic spawns older than 5 minutes
         val expiryCutoff = now - 5 * 60_000L
         dynamicSpawns.removeAll { spawn ->
-            spawn.id.startsWith("dyn_") &&
-                    spawn.id.substringAfter("dyn_")
-                        .substringBefore("_")
-                        .toLongOrNull()
-                        ?.let { it < expiryCutoff } == true
+            spawn.id.startsWith("dyn_") && spawn.spawnedAtMs > 0 && spawn.spawnedAtMs < expiryCutoff
         }
 
         return newSpawns
@@ -124,6 +120,7 @@ object DynamicSpawnManager {
         emoji: String,
         rarity: EmojiObject.Rarity
     ): EmojiObject {
+        val now = System.currentTimeMillis()
         val angle    = Random.nextDouble(0.0, 360.0)
         val distance = Random.nextDouble(SPAWN_RADIUS_M * 0.3, SPAWN_RADIUS_M)
         val offsetLat = offsetMetresToDeg(distance * cos(Math.toRadians(angle)))
@@ -131,12 +128,13 @@ object DynamicSpawnManager {
                 cos(Math.toRadians(lat))
 
         return EmojiObject(
-            id = "dyn_${System.currentTimeMillis()}_${Random.nextInt(9999)}",
-            lat = lat + offsetLat,
-            lng = lng + offsetLng,
-            emoji = emoji,
-            rarity = rarity,
-            respawnDelayMs = 0L
+            id           = "dyn_${now}_${Random.nextInt(99999)}",
+            lat          = lat + offsetLat,
+            lng          = lng + offsetLng,
+            emoji        = emoji,
+            rarity       = rarity,
+            respawnDelayMs = 0L,
+            spawnedAtMs  = now          // ← the new field
         )
     }
 

@@ -33,7 +33,7 @@
         android:layout_height="wrap_content"
         android:hint="Team name (e.g. Red Wolves)"
         android:layout_marginBottom="16dp"
-        app:boxStrokeColor="#7E42F5"
+        app:boxStrokeColor="#FFFFFF"
         app:hintTextColor="#AAAAAA">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -51,7 +51,7 @@
         android:layout_height="wrap_content"
         android:hint="Team PIN (4+ digits, share with teammates)"
         android:layout_marginBottom="24dp"
-        app:boxStrokeColor="#7E42F5"
+        app:boxStrokeColor="#FFFFFF"
         app:hintTextColor="#AAAAAA">
 
         <com.google.android.material.textfield.TextInputEditText
