@@ -94,9 +94,9 @@ object SpawnConfig {
     val ALL_OBJECTS get() = SPAWN_POINTS
 
     // Proximity and capture config
-    const val VISIBILITY_RADIUS_M  = 25.0   // marker appears on map
-    const val AR_TRIGGER_RADIUS_M  =  7.0   // CAPTURE button shown
-    const val PROXIMITY_RADIUS_M   = 25.0   // keep same as visibility for hint text
+    const val VISIBILITY_RADIUS_M  = 35.0   // marker appears on map
+    const val AR_TRIGGER_RADIUS_M  =  10.0   // CAPTURE button shown
+    const val PROXIMITY_RADIUS_M   = 35.0   // keep same as visibility for hint text
     const val CAPTURE_HOLD_MS         = 1800L
     const val GPS_ACCURACY_GATE_M     = 35f
     const val GPS_JUMP_THRESHOLD_M    = 80.0
