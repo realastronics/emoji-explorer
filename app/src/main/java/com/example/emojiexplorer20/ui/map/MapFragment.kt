@@ -281,7 +281,7 @@ class MapFragment : Fragment() {
         bannerHandler.postDelayed({
             if (!isAdded) return@postDelayed
             ObjectAnimator.ofFloat(overlay, "alpha", 1f, 0f).apply {
-                duration = 400
+                duration = 250
                 addListener(object : android.animation.AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
                         overlay.visibility = View.GONE

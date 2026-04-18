@@ -84,6 +84,8 @@ object SpawnConfig {
         EmojiObject("sp_42", 28.2474849, 76.8156757, "🚶", EmojiObject.Rarity.EMOJI),
         // Excellence Centre
         EmojiObject("sp_43", 28.2473100, 76.8132446, "🏆", EmojiObject.Rarity.EMOJI),
+        // Faculty Line
+        EmojiObject("sp_44", 28.2478960, 76.8121509, "yellow", EmojiObject.Rarity.EMOJI),
     )
 
     fun resetCaptureState() {
